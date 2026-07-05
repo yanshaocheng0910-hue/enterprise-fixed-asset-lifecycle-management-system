@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.asset.asset.mapper.AssetMapper">
+
+    <select id="selectAssetPage" resultType="com.example.asset.asset.vo.AssetPageVO">
+        SELECT
+            a.id,
+            a.asset_code,
+            a.asset_name,
+            a.category_id,
+            c.category_name,
+            a.brand,
+            a.specification,
+            a.department,
+            a.keeper,
+            a.location,
+            a.original_value,
+            a.net_value,
+            a.status,
+            a.purchase_date
+        FROM asset a
+        LEFT JOIN asset_category c ON c.id = a.category_id
+        <where>
+            a.deleted = 0
+            <if test="query.assetCode != null and query.assetCode != ''">
+                AND a.asset_code LIKE CONCAT('%', #{query.assetCode}, '%')
+            </if>
+            <if test="query.assetName != null and query.assetName != ''">
+                AND a.asset_name LIKE CONCAT('%', #{query.assetName}, '%')
+            </if>
+            <if test="query.categoryId != null">
+                AND a.category_id = #{query.categoryId}
+            </if>
+            <if test="query.department != null and query.department != ''">
+                AND a.department LIKE CONCAT('%', #{query.department}, '%')
+            </if>
+            <if test="query.keeper != null and query.keeper != ''">
+                AND a.keeper LIKE CONCAT('%', #{query.keeper}, '%')
+            </if>
+            <if test="query.location != null and query.location != ''">
+                AND a.location LIKE CONCAT('%', #{query.location}, '%')
+            </if>
+            <if test="query.status != null and query.status != ''">
+                AND a.status = #{query.status}
+            </if>
+            <if test="query.purchaseDateStart != null">
+                AND a.purchase_date <![CDATA[>=]]> #{query.purchaseDateStart}
+            </if>
+            <if test="query.purchaseDateEnd != null">
+                AND a.purchase_date <![CDATA[<=]]> #{query.purchaseDateEnd}
+            </if>
+        </where>
+        ORDER BY a.updated_at DESC, a.id DESC
+    </select>
+
+    <select id="selectAssetDetail" resultType="com.example.asset.asset.vo.AssetDetailVO">
+        SELECT
+            a.id,
+            a.asset_code,
+            a.asset_name,
+            a.category_id,
+            c.category_name,
+            c.category_code,
+            a.specification,
+            a.brand,
+            a.purchase_date,
+            a.original_value,
+            a.useful_life,
+            a.residual_rate,
+            a.depreciation_method,
+            a.accumulated_depreciation,
+            a.net_value,
+            a.department,
+            a.keeper,
+            a.location,
+            a.status,
+            a.qr_code,
+            a.rfid_code,
+            a.photo_url,
+            a.remark,
+            a.created_at,
+            a.updated_at
+        FROM asset a
+        LEFT JOIN asset_category c ON c.id = a.category_id
+        WHERE a.id = #{id}
+          AND a.deleted = 0
+    </select>
+</mapper>
