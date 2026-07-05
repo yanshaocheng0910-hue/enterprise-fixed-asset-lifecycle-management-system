@@ -1,0 +1,32 @@
+# Java / Maven
+backend/target/
+backend/*.iml
+backend/.classpath
+backend/.project
+backend/.settings/
+*.class
+*.jar
+*.war
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+# Logs
+*.log
