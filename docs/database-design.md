@@ -17,6 +17,11 @@
 | asset_category | 资产分类表 | 第一阶段 |
 | asset | 固定资产表 | 第一阶段 |
 | asset_operation_log | 资产操作日志表 | 第一阶段 |
+| asset_inbound_order | 资产入库单 | 第二阶段 |
+| asset_receive_order | 资产领用单 | 第二阶段 |
+| asset_transfer_order | 资产调拨单 | 第二阶段 |
+| asset_repair_order | 资产维修单 | 第二阶段 |
+| asset_scrap_order | 资产报废单 | 第二阶段 |
 | depreciation_record | 折旧记录表 | 第一阶段（结构预留） |
 | inventory_task | 盘点任务表 | 第一阶段（结构预留） |
 | inventory_record | 盘点明细表 | 第一阶段（结构预留） |
@@ -227,7 +232,25 @@
 
 约束：净值不能小于残值
 
-### 4.3 资产状态流转规则
+### 4.3 生命周期单据编号规则
+
+格式：`前缀` + `yyyyMMdd` + `4位流水号`
+
+| 单据类型 | 前缀 | 示例 |
+|---|---|---|
+| 入库单 | IN | IN202607050001 |
+| 领用单 | RE | RE202607050001 |
+| 调拨单 | TF | TF202607050001 |
+| 维修单 | RP | RP202607050001 |
+| 报废单 | SC | SC202607050001 |
+
+规则：
+
+- 前缀 + 当天日期（yyyyMMdd）+ 4位流水号
+- 跨5张表查询最大编号保证唯一性
+- 每天流水号从 0001 开始
+
+### 4.4 资产状态流转规则
 
 | 操作 | 变更 |
 |---|---|
@@ -239,7 +262,7 @@
 | 报废完成 | 状态 → SCRAPPED |
 | 盘点异常 | 状态 → INVENTORY_ABNORMAL |
 
-### 4.4 逻辑删除规则
+### 4.5 逻辑删除规则
 
 - asset 表使用 deleted 字段标记
 - deleted = 0：有效数据
@@ -255,4 +278,9 @@ asset --< asset_operation_log
 asset --< depreciation_record
 inventory_task --< inventory_record
 inventory_record >-- asset
+asset --< asset_inbound_order
+asset --< asset_receive_order
+asset --< asset_transfer_order
+asset --< asset_repair_order
+asset --< asset_scrap_order
 ```

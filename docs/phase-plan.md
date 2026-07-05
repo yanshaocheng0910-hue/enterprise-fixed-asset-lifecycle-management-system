@@ -43,13 +43,11 @@
 
 ---
 
-## 第二阶段：生命周期单据流（计划中）
+## 第二阶段：生命周期单据流（已完成）
 
-### 目标
+### 已实现
 
-让资产状态不再靠手动编辑，而是通过业务单据自动流转。
-
-### 新表
+**新表：**
 
 | 表名 | 说明 |
 |---|---|
@@ -59,14 +57,25 @@
 | asset_repair_order | 维修单 |
 | asset_scrap_order | 报废单 |
 
-### 实现功能
+**新增接口（17 个）：**
 
-- 入库流程：新增资产 → 入库单 → 状态 IDLE
-- 领用流程：选择资产 → 领用单 → 状态 IN_USE
-- 调拨流程：选择资产 → 调拨单 → 状态 TRANSFERRING → IN_USE
-- 维修流程：选择资产 → 维修单 → 状态 REPAIRING → IN_USE/IDLE
-- 报废流程：选择资产 → 报废申请 → 状态 WAITING_SCRAP → SCRAPPED
-- 每个流程自动记录 asset_operation_log
+- GET /api/lifecycle/asset-select-options - 资产选择列表
+- 入库：POST /page/{id}
+- 领用：POST /page/{id}
+- 调拨：POST /page/{id}
+- 维修：POST /page/{id} + PUT /{id}/complete
+- 报废：POST /page/{id}
+
+**状态流转实现：**
+
+| 流程 | 条件 | 结果 |
+|---|---|---|
+| 领用 | IDLE → IN_USE | 更新部门/保管人 |
+| 调拨 | IDLE/IN_USE → IN_USE | 更新部门/地点/保管人 |
+| 维修 | IDLE/IN_USE → REPAIRING | 维修单 DRAFT |
+| 维修完成 | REPAIRED → IN_USE | 维修单 COMPLETED |
+| 维修完成 | SCRAP_SUGGESTED → WAITING_SCRAP | 维修单 COMPLETED |
+| 报废 | IDLE/IN_USE/REPAIRING/WAITING_SCRAP → SCRAPPED | 报废单 COMPLETED |
 
 ---
 

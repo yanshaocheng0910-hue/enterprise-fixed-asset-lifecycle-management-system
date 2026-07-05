@@ -533,3 +533,189 @@ GET /api/dashboard/depreciation-trend
   ]
 }
 ```
+---
+
+## 6. 生命周期单据接口
+
+### 6.1 资产选择列表
+
+`
+GET /api/lifecycle/asset-select-options?status=IDLE
+`
+
+请求头：Authorization: Bearer <token>
+
+查询参数：
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| status | string | 可选，按状态筛选（IDLE/IN_USE 等） |
+
+返回：
+
+`json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": [
+    { "id": 1, "assetCode": "FA2024030001", "assetName": "台式电脑-A01", "department": "信息中心", "keeper": "张伟", "location": "A座3层机房", "status": "IDLE" }
+  ]
+}
+`
+
+### 6.2 入库单
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | /api/lifecycle/inbound | 创建入库单 |
+| GET | /api/lifecycle/inbound/{id} | 入库单详情 |
+| GET | /api/lifecycle/inbound/page | 入库单分页 |
+
+创建请求体：
+
+`json
+{
+  "assetId": 1,
+  "inboundType": "采购",
+  "supplier": "供应商名称",
+  "purchaseOrderNo": "PO202607001",
+  "inboundDate": "2026-07-05",
+  "handler": "经办人",
+  "remark": ""
+}
+`
+
+说明：
+
+- 入库后资产状态为 IDLE
+- 单据编号格式：IN + yyyyMMdd + 4位流水号
+
+### 6.3 领用单
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | /api/lifecycle/receive | 创建领用单 |
+| GET | /api/lifecycle/receive/{id} | 领用单详情 |
+| GET | /api/lifecycle/receive/page | 领用单分页 |
+
+创建请求体：
+
+`json
+{
+  "assetId": 1,
+  "receiver": "领用人姓名",
+  "receiverDepartment": "领用部门",
+  "receiveDate": "2026-07-05",
+  "usagePurpose": "使用用途",
+  "remark": ""
+}
+`
+
+说明：
+
+- 仅允许 IDLE 资产领用
+- 领用后 asset.status = IN_USE, department/keeper 更新
+- 单据编号格式：RE + yyyyMMdd + 4位流水号
+
+### 6.4 调拨单
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | /api/lifecycle/transfer | 创建调拨单 |
+| GET | /api/lifecycle/transfer/{id} | 调拨单详情 |
+| GET | /api/lifecycle/transfer/page | 调拨单分页 |
+
+创建请求体：
+
+`json
+{
+  "assetId": 1,
+  "toDepartment": "调入部门",
+  "toLocation": "调入地点",
+  "toKeeper": "调入保管人",
+  "transferDate": "2026-07-05",
+  "remark": ""
+}
+`
+
+说明：
+
+- 仅允许 IDLE 或 IN_USE 资产调拨
+- 调拨后更新 department/location/keeper
+- 单据编号格式：TF + yyyyMMdd + 4位流水号
+
+### 6.5 维修单
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | /api/lifecycle/repair | 创建维修单 |
+| GET | /api/lifecycle/repair/{id} | 维修单详情 |
+| GET | /api/lifecycle/repair/page | 维修单分页 |
+| PUT | /api/lifecycle/repair/{id}/complete | 完成维修 |
+
+创建请求体：
+
+`json
+{
+  "assetId": 1,
+  "faultDescription": "故障描述",
+  "repairVendor": "维修厂商",
+  "repairCost": 1200.00,
+  "repairStartDate": "2026-07-01",
+  "remark": ""
+}
+`
+
+完成维修请求体：
+
+`json
+{
+  "repairResult": "REPAIRED",
+  "repairVendor": "维修厂商",
+  "repairCost": 1200.00,
+  "repairEndDate": "2026-07-05",
+  "remark": "维修备注"
+}
+`
+
+说明：
+
+- 仅允许 IDLE 或 IN_USE 资产发起维修
+- 创建后 asset.status = REPAIRING，维修单 status = DRAFT
+- repairResult 可选值：REPAIRED（→ IN_USE）、SCRAP_SUGGESTED（→ WAITING_SCRAP）
+- 单据编号格式：RP + yyyyMMdd + 4位流水号
+
+### 6.6 报废单
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | /api/lifecycle/scrap | 创建报废单 |
+| GET | /api/lifecycle/scrap/{id} | 报废单详情 |
+| GET | /api/lifecycle/scrap/page | 报废单分页 |
+
+创建请求体：
+
+`json
+{
+  "assetId": 1,
+  "scrapReason": "报废原因",
+  "scrapDate": "2026-07-05",
+  "disposalMethod": "回收",
+  "residualValue": 500.00,
+  "remark": ""
+}
+`
+
+说明：
+
+- 允许 IDLE、IN_USE、REPAIRING、WAITING_SCRAP 报废
+- 报废后 asset.status = SCRAPPED
+- 单据编号格式：SC + yyyyMMdd + 4位流水号
+
+### 6.7 单据状态
+
+| 状态 | 说明 |
+|---|---|
+| DRAFT | 草稿（维修单创建后默认） |
+| COMPLETED | 已完成 |
+| CANCELLED | 已取消 |
