@@ -1,0 +1,7 @@
+### 查询资产分类列表
+GET http://localhost:8080/api/asset-categories/list
+Authorization: Bearer {{token}}
+
+### 查询资产分类树
+GET http://localhost:8080/api/asset-categories/tree
+Authorization: Bearer {{token}}

@@ -1,0 +1,19 @@
+### 盘点任务分页（骨架接口）
+# 第一阶段返回空分页数据
+GET http://localhost:8080/api/inventory/tasks/page?pageNum=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### 模拟同步折旧到财务系统（骨架接口）
+# 第一阶段为模拟对接
+POST http://localhost:8080/api/finance/sync-depreciation
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "depreciationMonth": "2026-07"
+}
+
+### 查询财务同步记录（骨架接口）
+# 第一阶段返回模拟数据
+GET http://localhost:8080/api/finance/sync-records
+Authorization: Bearer {{token}}
