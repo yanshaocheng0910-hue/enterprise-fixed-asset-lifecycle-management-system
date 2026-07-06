@@ -451,7 +451,35 @@ npm run build        # 生产构建
 
 ---
 
-## 12. 当前未实现内容
+## 12. SDD 开发规范
+
+本项目后续开发遵循 **SDD（Spec-Driven Development，规格驱动开发）** 方式。
+
+### 开发流程
+
+```
+Spec → Design → Tasks → Implementation → Acceptance → Review → Commit
+```
+
+### 关键规则
+
+1. **每个新阶段**必须在 `docs/sdd/` 下先编写需求规格文档。
+2. **每次开发前**必须明确「做什么」和「不做什么」。
+3. 没有 Design 文档，不允许建表和写接口代码。
+4. **每个阶段**都必须有验收报告。
+5. 未通过 `mvn -DskipTests package` 和 `npm run build` 不能提交代码。
+6. **第一阶段和第二阶段主链路不允许随意重构**。
+
+### 相关文档
+
+- 项目范围：`docs/sdd/00-project-scope.md`
+- 领域模型：`docs/sdd/01-domain-model.md`
+- 开发流程：`docs/sdd/02-development-process.md`
+- 模板：`docs/sdd/03-spec-template.md` / `04-design-template.md` / `05-task-template.md` / `06-acceptance-template.md`
+
+---
+
+## 13. 当前未实现内容
 
 以下功能尚未实现，等待后续开发：
 
@@ -494,7 +522,7 @@ npm run build        # 生产构建
 
 ---
 
-## 13. 后续开发路线
+## 14. 后续开发路线
 
 | 阶段 | 状态 | 内容 |
 |---|---|---|
@@ -509,7 +537,7 @@ npm run build        # 生产构建
 
 ---
 
-## 14. 推荐团队分工
+## 15. 推荐团队分工
 
 | 模块 | 建议负责 |
 |---|---|
@@ -522,7 +550,7 @@ npm run build        # 生产构建
 
 ---
 
-## 15. 开发注意事项
+## 16. 开发注意事项
 
 1. **不要重构已完成的主链路。** 登录、资产台账、驾驶舱、资产详情、资产分类、生命周期单据流已稳定，新功能应在现有结构上增量开发。
 
@@ -540,7 +568,7 @@ npm run build        # 生产构建
 
 ---
 
-## 16. 整个项目最终形态
+## 17. 整个项目最终形态
 
 项目完成后应该达到以下标准：
 
