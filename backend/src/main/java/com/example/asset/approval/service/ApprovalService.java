@@ -1,7 +1,7 @@
 package com.example.asset.approval.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.asset.approval.dto.ApprovalActionRequest;
 import com.example.asset.approval.dto.ApprovalPageRequest;
 import com.example.asset.approval.dto.ApprovalSubmitRequest;
@@ -12,6 +12,7 @@ import com.example.asset.common.BusinessException;
 import com.example.asset.common.PageResult;
 import com.example.asset.common.ResultCode;
 import com.example.asset.context.UserContext;
+import com.example.asset.lifecycle.service.LifecycleService;
 import com.example.asset.user.entity.SysUser;
 import com.example.asset.user.mapper.SysUserMapper;
 import org.springframework.stereotype.Service;
@@ -32,25 +33,24 @@ public class ApprovalService {
     private final ApprovalInstanceMapper approvalInstanceMapper;
     private final ApprovalRecordMapper approvalRecordMapper;
     private final SysUserMapper sysUserMapper;
+    private final LifecycleService lifecycleService;
 
     public ApprovalService(ApprovalFlowMapper approvalFlowMapper,
                            ApprovalNodeMapper approvalNodeMapper,
                            ApprovalInstanceMapper approvalInstanceMapper,
                            ApprovalRecordMapper approvalRecordMapper,
-                           SysUserMapper sysUserMapper) {
+                           SysUserMapper sysUserMapper,
+                           LifecycleService lifecycleService) {
         this.approvalFlowMapper = approvalFlowMapper;
         this.approvalNodeMapper = approvalNodeMapper;
         this.approvalInstanceMapper = approvalInstanceMapper;
         this.approvalRecordMapper = approvalRecordMapper;
         this.sysUserMapper = sysUserMapper;
+        this.lifecycleService = lifecycleService;
     }
 
     // ======================== Submit ========================
 
-    /**
-     * 提交审批
-     * 创建审批实例和首条审批记录（SUBMIT），不修改资产状态，不执行业务流转。
-     */
     @Transactional(rollbackFor = Exception.class)
     public Long submit(ApprovalSubmitRequest req) {
         if (!SUPPORTED_BUSINESS_TYPES.contains(req.getBusinessType())) {
@@ -58,74 +58,168 @@ public class ApprovalService {
                     "不支持的业务类型: " + req.getBusinessType() + "，支持: " + String.join(", ", SUPPORTED_BUSINESS_TYPES));
         }
 
-        // 查找审批模板
         ApprovalFlow flow = approvalFlowMapper.findByBusinessType(req.getBusinessType());
         if (flow == null) {
             throw new BusinessException(ResultCode.BAD_REQUEST,
                     "未找到 " + req.getBusinessType() + " 对应的审批配置");
         }
 
-        // 校验是否已有未完成的审批实例
         ApprovalInstance existing = approvalInstanceMapper.findByBusiness(req.getBusinessType(), req.getBusinessId());
         if (existing != null && ("SUBMITTED".equals(existing.getStatus()) || "APPROVING".equals(existing.getStatus()))) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "该单据已在审批中，不能重复提交");
         }
 
-        // 获取审批节点列表
         List<ApprovalNode> nodes = approvalNodeMapper.findByFlowIdOrderBySort(flow.getId());
         if (nodes.isEmpty()) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "审批流程未配置审批节点");
         }
 
         Long currentUserId = UserContext.getUserId();
-        String currentUsername = UserContext.getUsername();
 
-        // 创建审批实例
         ApprovalInstance instance = new ApprovalInstance();
         instance.setBusinessType(req.getBusinessType());
         instance.setBusinessId(req.getBusinessId());
         instance.setFlowId(flow.getId());
-        instance.setCurrentNodeId(nodes.get(0).getId()); // 第一个审批节点
+        instance.setCurrentNodeId(nodes.get(0).getId());
         instance.setStatus("APPROVING");
         instance.setStartedBy(currentUserId);
         instance.setStartedAt(LocalDateTime.now());
         approvalInstanceMapper.insert(instance);
 
-        // 创建 SUBMIT 记录
         ApprovalRecord record = new ApprovalRecord();
         record.setInstanceId(instance.getId());
-        record.setNodeId(0L); // 0 表示提交节点
-        record.setApproverId(null);
-        record.setApproverName(null);
+        record.setNodeId(0L);
         record.setAction("SUBMIT");
         record.setComment(req.getRemark());
         record.setStatus("APPROVING");
-        record.setApprovedAt(null);
         approvalRecordMapper.insert(record);
 
         return instance.getId();
     }
 
-    // ======================== Approve / Reject (stubs) ========================
+    // ======================== Approve ========================
 
     @Transactional(rollbackFor = Exception.class)
     public void approve(Long instanceId, ApprovalActionRequest req) {
-        throw new BusinessException(ResultCode.BAD_REQUEST,
-                "审批通过功能将在 3.3 版本实现，当前为审批基础骨架阶段");
+        ApprovalInstance instance = approvalInstanceMapper.selectById(instanceId);
+        if (instance == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "审批实例不存在");
+        }
+        if (!"APPROVING".equals(instance.getStatus())) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "审批状态不是审批中，无法审批通过");
+        }
+
+        // Check role matches current node
+        ApprovalNode currentNode = approvalNodeMapper.selectById(instance.getCurrentNodeId());
+        if (currentNode == null) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "审批节点不存在");
+        }
+        List<String> userRoles = UserContext.get().getRoles();
+        if (userRoles == null || !userRoles.contains(currentNode.getApproverRole())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "当前用户没有该节点的审批权限");
+        }
+
+        Long userId = UserContext.getUserId();
+        String username = UserContext.getUsername();
+        String comment = req.getComment() != null ? req.getComment() : "";
+
+        // Get next node
+        List<ApprovalNode> allNodes = approvalNodeMapper.findByFlowIdOrderBySort(instance.getFlowId());
+        ApprovalNode nextNode = null;
+        for (int i = 0; i < allNodes.size() - 1; i++) {
+            if (allNodes.get(i).getId().equals(instance.getCurrentNodeId())) {
+                nextNode = allNodes.get(i + 1);
+                break;
+            }
+        }
+
+        if (nextNode != null) {
+            // Still has next approval node
+            instance.setCurrentNodeId(nextNode.getId());
+            instance.setStatus("APPROVING");
+            approvalInstanceMapper.updateById(instance);
+
+            ApprovalRecord record = new ApprovalRecord();
+            record.setInstanceId(instanceId);
+            record.setNodeId(currentNode.getId());
+            record.setApproverId(userId);
+            record.setApproverName(getUserNameById(userId));
+            record.setAction("APPROVED");
+            record.setComment(comment);
+            record.setStatus("APPROVING");
+            record.setApprovedAt(LocalDateTime.now());
+            approvalRecordMapper.insert(record);
+        } else {
+            // Last node approved — complete flow and execute business logic
+            instance.setStatus("COMPLETED");
+            instance.setCurrentNodeId(null);
+            instance.setCompletedAt(LocalDateTime.now());
+            approvalInstanceMapper.updateById(instance);
+
+            ApprovalRecord record = new ApprovalRecord();
+            record.setInstanceId(instanceId);
+            record.setNodeId(currentNode.getId());
+            record.setApproverId(userId);
+            record.setApproverName(getUserNameById(userId));
+            record.setAction("APPROVED");
+            record.setComment(comment);
+            record.setStatus("COMPLETED");
+            record.setApprovedAt(LocalDateTime.now());
+            approvalRecordMapper.insert(record);
+
+            // Execute lifecycle flow
+            executeBusinessFlow(instance.getBusinessType(), instance.getBusinessId());
+        }
     }
+
+    // ======================== Reject ========================
 
     @Transactional(rollbackFor = Exception.class)
     public void reject(Long instanceId, ApprovalActionRequest req) {
-        throw new BusinessException(ResultCode.BAD_REQUEST,
-                "审批驳回功能将在 3.3 版本实现，当前为审批基础骨架阶段");
+        ApprovalInstance instance = approvalInstanceMapper.selectById(instanceId);
+        if (instance == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "审批实例不存在");
+        }
+        if (!"APPROVING".equals(instance.getStatus())) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "审批状态不是审批中，无法驳回");
+        }
+
+        ApprovalNode currentNode = approvalNodeMapper.selectById(instance.getCurrentNodeId());
+        if (currentNode == null) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "审批节点不存在");
+        }
+        List<String> userRoles = UserContext.get().getRoles();
+        if (userRoles == null || !userRoles.contains(currentNode.getApproverRole())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "当前用户没有该节点的审批权限");
+        }
+
+        Long userId = UserContext.getUserId();
+        String username = UserContext.getUsername();
+        String comment = req.getComment() != null ? req.getComment() : "";
+
+        // Reject instance
+        instance.setStatus("REJECTED");
+        instance.setCurrentNodeId(null);
+        instance.setCompletedAt(LocalDateTime.now());
+        approvalInstanceMapper.updateById(instance);
+
+        // Write record
+        ApprovalRecord record = new ApprovalRecord();
+        record.setInstanceId(instanceId);
+        record.setNodeId(currentNode.getId());
+        record.setApproverId(userId);
+        record.setApproverName(getUserNameById(userId));
+        record.setAction("REJECTED");
+        record.setComment(comment);
+        record.setStatus("REJECTED");
+        record.setApprovedAt(LocalDateTime.now());
+        approvalRecordMapper.insert(record);
+
+        // Do NOT modify asset status — rejection leaves asset untouched
     }
 
     // ======================== Todo Page ========================
 
-    /**
-     * 我的待办
-     * 根据当前用户角色匹配审批节点，返回待审批的审批实例列表。
-     */
     public PageResult<ApprovalTodoVO> todoPage(ApprovalPageRequest req) {
         List<String> userRoles = UserContext.get().getRoles();
         if (userRoles == null || userRoles.isEmpty()) {
@@ -135,7 +229,6 @@ public class ApprovalService {
         Page<ApprovalTodoVO> page = new Page<>(req.getPageNum(), req.getPageSize());
         IPage<ApprovalTodoVO> result = approvalInstanceMapper.selectTodoPage(page, userRoles);
 
-        // 填充申请人姓名
         for (ApprovalTodoVO vo : result.getRecords()) {
             vo.setApplicantName(getUserNameById(vo.getStartedBy()));
         }
@@ -145,10 +238,6 @@ public class ApprovalService {
 
     // ======================== Done Page ========================
 
-    /**
-     * 我的已办
-     * 查询当前用户已处理的审批记录。
-     */
     public PageResult<ApprovalDoneVO> donePage(ApprovalPageRequest req) {
         Long userId = UserContext.getUserId();
         if (userId == null) {
@@ -163,32 +252,23 @@ public class ApprovalService {
 
     // ======================== Records ========================
 
-    /**
-     * 查询审批记录
-     * 根据业务类型和业务 ID 查找审批实例下的所有审批记录。
-     */
     public List<ApprovalRecordVO> getRecords(String businessType, Long businessId) {
-        // 查找审批实例
         ApprovalInstance instance = approvalInstanceMapper.findByBusiness(businessType, businessId);
         if (instance == null) {
             return new ArrayList<>();
         }
 
-        // 查询审批记录
         List<ApprovalRecord> records = approvalRecordMapper.findByInstanceIdOrderByCreatedAt(instance.getId());
 
-        // 转换为 VO
         return records.stream().map(r -> {
             ApprovalRecordVO vo = new ApprovalRecordVO();
             vo.setAction(r.getAction());
             vo.setComment(r.getComment());
             vo.setApprovedAt(r.getApprovedAt());
-            // 如果是 SUBMIT 记录，用"提交人"代替
             if ("SUBMIT".equals(r.getAction())) {
                 vo.setNodeName("提交申请");
                 vo.setApproverName(getUserNameById(instance.getStartedBy()));
             } else {
-                // 查找节点名称
                 if (r.getNodeId() != null && r.getNodeId() > 0) {
                     ApprovalNode node = approvalNodeMapper.selectById(r.getNodeId());
                     vo.setNodeName(node != null ? node.getNodeName() : "未知节点");
@@ -203,10 +283,6 @@ public class ApprovalService {
 
     // ======================== Detail ========================
 
-    /**
-     * 查询审批详情
-     * 返回审批实例信息、当前节点信息、审批流程信息和审批记录列表。
-     */
     public ApprovalDetailVO getDetail(Long instanceId) {
         ApprovalInstance instance = approvalInstanceMapper.selectById(instanceId);
         if (instance == null) {
@@ -221,20 +297,16 @@ public class ApprovalService {
         vo.setStartedAt(instance.getStartedAt());
         vo.setCompletedAt(instance.getCompletedAt());
 
-        // 查询审批流名称
         ApprovalFlow flow = approvalFlowMapper.selectById(instance.getFlowId());
         vo.setFlowName(flow != null ? flow.getFlowName() : "未知流程");
 
-        // 查询当前节点名称
         if (instance.getCurrentNodeId() != null && instance.getCurrentNodeId() > 0) {
             ApprovalNode currentNode = approvalNodeMapper.selectById(instance.getCurrentNodeId());
             vo.setCurrentNodeName(currentNode != null ? currentNode.getNodeName() : null);
         }
 
-        // 申请人姓名
         vo.setApplicantName(getUserNameById(instance.getStartedBy()));
 
-        // 审批记录
         List<ApprovalRecord> records = approvalRecordMapper.findByInstanceIdOrderByCreatedAt(instanceId);
         List<ApprovalRecordVO> recordVOs = records.stream().map(r -> {
             ApprovalRecordVO rvo = new ApprovalRecordVO();
@@ -261,7 +333,26 @@ public class ApprovalService {
         return vo;
     }
 
-    // ======================== Helpers ========================
+    // ======================== Private ========================
+
+    private void executeBusinessFlow(String businessType, Long businessId) {
+        switch (businessType) {
+            case "RECEIVE":
+                lifecycleService.executeReceiveFlow(businessId);
+                break;
+            case "TRANSFER":
+                lifecycleService.executeTransferFlow(businessId);
+                break;
+            case "REPAIR":
+                lifecycleService.executeRepairStartFlow(businessId);
+                break;
+            case "SCRAP":
+                lifecycleService.executeScrapFlow(businessId);
+                break;
+            default:
+                throw new BusinessException(ResultCode.BAD_REQUEST, "不支持的审批业务类型: " + businessType);
+        }
+    }
 
     private String getUserNameById(Long userId) {
         if (userId == null) return "未知";

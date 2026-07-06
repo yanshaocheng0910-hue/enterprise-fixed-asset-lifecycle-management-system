@@ -124,6 +124,7 @@ public class LifecycleService {
         if ("SCRAPPED".equals(beforeStatus)) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "已报废资产不能入库");
         }
+        // Phase 3: Inbound has no approval, so still auto-completes
         asset.setStatus("IDLE");
         assetMapper.updateById(asset);
 
@@ -192,6 +193,10 @@ public class LifecycleService {
         return vo;
     }
 
+    /**
+     * Create receive order as DRAFT (Phase 3 approval mode).
+     * Does NOT change asset status. Approval must pass first.
+     */
     @Transactional(rollbackFor = Exception.class)
     public Long createReceive(ReceiveCreateRequest request) {
         Asset asset = requireAsset(request.getAssetId());
@@ -199,10 +204,6 @@ public class LifecycleService {
         if (!"IDLE".equals(beforeStatus)) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "仅闲置资产可领用，当前状态:" + beforeStatus);
         }
-        asset.setStatus("IN_USE");
-        asset.setDepartment(request.getReceiverDepartment());
-        asset.setKeeper(request.getReceiver());
-        assetMapper.updateById(asset);
 
         ReceiveOrder order = new ReceiveOrder();
         order.setOrderCode(generateOrderCode("RE"));
@@ -213,14 +214,38 @@ public class LifecycleService {
         order.setUsagePurpose(request.getUsagePurpose());
         order.setBeforeStatus(beforeStatus);
         order.setAfterStatus("IN_USE");
-        order.setStatus("COMPLETED");
+        order.setStatus("DRAFT");
         order.setRemark(request.getRemark());
         order.setCreatedBy(UserContext.getUserId());
         receiveOrderMapper.insert(order);
-
-        recordLog(request.getAssetId(), "RECEIVE", "资产领用", beforeStatus, "IN_USE",
-                "领用单:" + order.getOrderCode());
         return order.getId();
+    }
+
+    /**
+     * Execute receive flow after approval.
+     * Called by ApprovalService when the final approval node is approved.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void executeReceiveFlow(Long orderId) {
+        ReceiveOrder order = receiveOrderMapper.selectById(orderId);
+        if (order == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "领用单不存在");
+        }
+        Asset asset = requireAsset(order.getAssetId());
+        String beforeStatus = asset.getStatus();
+        if (!"IDLE".equals(beforeStatus)) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "仅闲置资产可领用，当前状态:" + beforeStatus);
+        }
+        asset.setStatus("IN_USE");
+        asset.setDepartment(order.getReceiverDepartment());
+        asset.setKeeper(order.getReceiver());
+        assetMapper.updateById(asset);
+
+        order.setStatus("COMPLETED");
+        receiveOrderMapper.updateById(order);
+
+        recordLog(asset.getId(), "RECEIVE", "资产领用(审批通过)", beforeStatus, "IN_USE",
+                "领用单:" + order.getOrderCode());
     }
 
     // ==================== Transfer ====================
@@ -274,6 +299,9 @@ public class LifecycleService {
         return vo;
     }
 
+    /**
+     * Create transfer order as DRAFT (Phase 3 approval mode).
+     */
     @Transactional(rollbackFor = Exception.class)
     public Long createTransfer(TransferCreateRequest request) {
         Asset asset = requireAsset(request.getAssetId());
@@ -281,32 +309,50 @@ public class LifecycleService {
         if (!TRANSFERABLE_STATUSES.contains(beforeStatus)) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "当前状态不允许调拨，状态:" + beforeStatus);
         }
-        asset.setDepartment(request.getToDepartment());
-        asset.setLocation(request.getToLocation());
-        asset.setKeeper(request.getToKeeper());
-        asset.setStatus("IN_USE");
-        assetMapper.updateById(asset);
 
         TransferOrder order = new TransferOrder();
         order.setOrderCode(generateOrderCode("TR"));
         order.setAssetId(request.getAssetId());
-        order.setFromDepartment(request.getFromDepartment());
+        order.setFromDepartment(asset.getDepartment());
         order.setToDepartment(request.getToDepartment());
-        order.setFromLocation(request.getFromLocation());
+        order.setFromLocation(asset.getLocation());
         order.setToLocation(request.getToLocation());
-        order.setFromKeeper(request.getFromKeeper());
+        order.setFromKeeper(asset.getKeeper());
         order.setToKeeper(request.getToKeeper());
         order.setTransferDate(request.getTransferDate());
         order.setBeforeStatus(beforeStatus);
         order.setAfterStatus("IN_USE");
-        order.setStatus("COMPLETED");
+        order.setStatus("DRAFT");
         order.setRemark(request.getRemark());
         order.setCreatedBy(UserContext.getUserId());
         transferOrderMapper.insert(order);
-
-        recordLog(request.getAssetId(), "TRANSFER", "资产调拨", beforeStatus, "IN_USE",
-                "调拨单:" + order.getOrderCode());
         return order.getId();
+    }
+
+    /**
+     * Execute transfer flow after approval.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void executeTransferFlow(Long orderId) {
+        TransferOrder order = transferOrderMapper.selectById(orderId);
+        if (order == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "调拨单不存在");
+        }
+        Asset asset = requireAsset(order.getAssetId());
+        if (!TRANSFERABLE_STATUSES.contains(asset.getStatus())) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "当前状态不允许调拨，状态:" + asset.getStatus());
+        }
+        asset.setDepartment(order.getToDepartment());
+        asset.setLocation(order.getToLocation());
+        asset.setKeeper(order.getToKeeper());
+        asset.setStatus("IN_USE");
+        assetMapper.updateById(asset);
+
+        order.setStatus("COMPLETED");
+        transferOrderMapper.updateById(order);
+
+        recordLog(asset.getId(), "TRANSFER", "资产调拨(审批通过)", order.getBeforeStatus(), "IN_USE",
+                "调拨单:" + order.getOrderCode());
     }
 
     // ==================== Repair ====================
@@ -358,6 +404,10 @@ public class LifecycleService {
         return vo;
     }
 
+    /**
+     * Create repair order as DRAFT. Does NOT change asset status.
+     * Approval must pass before asset enters REPAIRING.
+     */
     @Transactional(rollbackFor = Exception.class)
     public Long createRepair(RepairCreateRequest request) {
         Asset asset = requireAsset(request.getAssetId());
@@ -365,8 +415,6 @@ public class LifecycleService {
         if (!REPAIRABLE_STATUSES.contains(beforeStatus)) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "当前状态不允许维修，状态:" + beforeStatus);
         }
-        asset.setStatus("REPAIRING");
-        assetMapper.updateById(asset);
 
         RepairOrder order = new RepairOrder();
         order.setOrderCode(generateOrderCode("RP"));
@@ -380,22 +428,50 @@ public class LifecycleService {
         order.setRemark(request.getRemark());
         order.setCreatedBy(UserContext.getUserId());
         repairOrderMapper.insert(order);
-
-        recordLog(request.getAssetId(), "REPAIR_START", "资产送修", beforeStatus, "REPAIRING",
-                "维修单:" + order.getOrderCode());
         return order.getId();
     }
 
+    /**
+     * Execute repair start flow after approval.
+     * Changes asset status to REPAIRING.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void executeRepairStartFlow(Long orderId) {
+        RepairOrder order = repairOrderMapper.selectById(orderId);
+        if (order == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "维修单不存在");
+        }
+        Asset asset = requireAsset(order.getAssetId());
+        if (!REPAIRABLE_STATUSES.contains(asset.getStatus())) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "当前状态不允许维修，状态:" + asset.getStatus());
+        }
+        asset.setStatus("REPAIRING");
+        assetMapper.updateById(asset);
+
+        order.setStatus("COMPLETED");
+        repairOrderMapper.updateById(order);
+
+        recordLog(asset.getId(), "REPAIR_START", "资产送修(审批通过)", order.getBeforeStatus(), "REPAIRING",
+                "维修单:" + order.getOrderCode());
+    }
+
+    /**
+     * Complete repair (Phase 2 mode, used after repair work is done).
+     * Not affected by approval flow - this is a separate step.
+     */
     @Transactional(rollbackFor = Exception.class)
     public void completeRepair(Long id, RepairCompleteRequest request) {
         RepairOrder order = repairOrderMapper.selectById(id);
         if (order == null) {
             throw new BusinessException(ResultCode.NOT_FOUND, "维修单不存在");
         }
-        if (!"DRAFT".equals(order.getStatus())) {
-            throw new BusinessException(ResultCode.BAD_REQUEST, "维修单状态不是草稿，无法完成");
+        if (!"COMPLETED".equals(order.getStatus()) && !"DRAFT".equals(order.getStatus())) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "维修单状态不允许完成");
         }
         Asset asset = requireAsset(order.getAssetId());
+        if (!"REPAIRING".equals(asset.getStatus())) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "资产状态不是维修中，无法完成");
+        }
         String afterStatus;
         if ("REPAIRED".equals(request.getRepairResult())) {
             afterStatus = "IN_USE";
@@ -411,13 +487,45 @@ public class LifecycleService {
         order.setRepairVendor(request.getRepairVendor());
         order.setRepairCost(request.getRepairCost());
         order.setRepairEndDate(request.getRepairEndDate());
-        order.setBeforeStatus(order.getBeforeStatus());
         order.setAfterStatus(afterStatus);
         order.setStatus("COMPLETED");
         order.setRemark(request.getRemark());
         repairOrderMapper.updateById(order);
 
         recordLog(asset.getId(), "REPAIR_COMPLETE", "维修完成", "REPAIRING", afterStatus,
+                "维修单:" + order.getOrderCode());
+    }
+
+    /**
+     * Execute repair complete via approval (if needed).
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void executeRepairCompleteFlow(Long orderId, String repairResult) {
+        RepairOrder order = repairOrderMapper.selectById(orderId);
+        if (order == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "维修单不存在");
+        }
+        Asset asset = requireAsset(order.getAssetId());
+        if (!"REPAIRING".equals(asset.getStatus())) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "资产状态不是维修中，无法完成");
+        }
+        String afterStatus;
+        if ("REPAIRED".equals(repairResult)) {
+            afterStatus = "IN_USE";
+        } else if ("SCRAP_SUGGESTED".equals(repairResult)) {
+            afterStatus = "WAITING_SCRAP";
+        } else {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "无效的维修结果: " + repairResult);
+        }
+        asset.setStatus(afterStatus);
+        assetMapper.updateById(asset);
+
+        order.setRepairResult(repairResult);
+        order.setAfterStatus(afterStatus);
+        order.setStatus("COMPLETED");
+        repairOrderMapper.updateById(order);
+
+        recordLog(asset.getId(), "REPAIR_COMPLETE", "维修完成(审批通过)", "REPAIRING", afterStatus,
                 "维修单:" + order.getOrderCode());
     }
 
@@ -466,6 +574,9 @@ public class LifecycleService {
         return vo;
     }
 
+    /**
+     * Create scrap order as DRAFT. Does NOT change asset status.
+     */
     @Transactional(rollbackFor = Exception.class)
     public Long createScrap(ScrapCreateRequest request) {
         Asset asset = requireAsset(request.getAssetId());
@@ -473,8 +584,6 @@ public class LifecycleService {
         if (!SCRAPPABLE_STATUSES.contains(beforeStatus)) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "当前状态不允许报废，状态:" + beforeStatus);
         }
-        asset.setStatus("SCRAPPED");
-        assetMapper.updateById(asset);
 
         ScrapOrder order = new ScrapOrder();
         order.setOrderCode(generateOrderCode("SC"));
@@ -485,14 +594,35 @@ public class LifecycleService {
         order.setResidualValue(request.getResidualValue());
         order.setBeforeStatus(beforeStatus);
         order.setAfterStatus("SCRAPPED");
-        order.setStatus("COMPLETED");
+        order.setStatus("DRAFT");
         order.setRemark(request.getRemark());
         order.setCreatedBy(UserContext.getUserId());
         scrapOrderMapper.insert(order);
-
-        recordLog(request.getAssetId(), "SCRAP", "资产报废", beforeStatus, "SCRAPPED",
-                "报废单:" + order.getOrderCode());
         return order.getId();
+    }
+
+    /**
+     * Execute scrap flow after approval.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void executeScrapFlow(Long orderId) {
+        ScrapOrder order = scrapOrderMapper.selectById(orderId);
+        if (order == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "报废单不存在");
+        }
+        Asset asset = requireAsset(order.getAssetId());
+        String beforeStatus = asset.getStatus();
+        if ("SCRAPPED".equals(beforeStatus)) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "已报废资产不能再次报废");
+        }
+        asset.setStatus("SCRAPPED");
+        assetMapper.updateById(asset);
+
+        order.setStatus("COMPLETED");
+        scrapOrderMapper.updateById(order);
+
+        recordLog(asset.getId(), "SCRAP", "资产报废(审批通过)", beforeStatus, "SCRAPPED",
+                "报废单:" + order.getOrderCode());
     }
 
     // ==================== Private Helpers ====================
@@ -619,53 +749,27 @@ public class LifecycleService {
         vo.setCreatedAt(order.getCreatedAt());
     }
 
-    private void fillAssetInfo(InboundOrderPageVO vo, Long assetId) {
-        if (assetId != null) {
+    private void fillAssetInfo(Object vo, Long assetId) {
+        try {
             Asset asset = assetMapper.selectById(assetId);
             if (asset != null) {
-                vo.setAssetName(asset.getAssetName());
-                vo.setAssetCode(asset.getAssetCode());
+                if (hasMethod(vo, "setAssetName", String.class)) {
+                    vo.getClass().getMethod("setAssetName", String.class).invoke(vo, asset.getAssetName());
+                }
+                if (hasMethod(vo, "setAssetCode", String.class)) {
+                    vo.getClass().getMethod("setAssetCode", String.class).invoke(vo, asset.getAssetCode());
+                }
             }
+        } catch (Exception ignored) {
         }
     }
 
-    private void fillAssetInfo(ReceiveOrderPageVO vo, Long assetId) {
-        if (assetId != null) {
-            Asset asset = assetMapper.selectById(assetId);
-            if (asset != null) {
-                vo.setAssetName(asset.getAssetName());
-                vo.setAssetCode(asset.getAssetCode());
-            }
-        }
-    }
-
-    private void fillAssetInfo(TransferOrderPageVO vo, Long assetId) {
-        if (assetId != null) {
-            Asset asset = assetMapper.selectById(assetId);
-            if (asset != null) {
-                vo.setAssetName(asset.getAssetName());
-                vo.setAssetCode(asset.getAssetCode());
-            }
-        }
-    }
-
-    private void fillAssetInfo(RepairOrderPageVO vo, Long assetId) {
-        if (assetId != null) {
-            Asset asset = assetMapper.selectById(assetId);
-            if (asset != null) {
-                vo.setAssetName(asset.getAssetName());
-                vo.setAssetCode(asset.getAssetCode());
-            }
-        }
-    }
-
-    private void fillAssetInfo(ScrapOrderPageVO vo, Long assetId) {
-        if (assetId != null) {
-            Asset asset = assetMapper.selectById(assetId);
-            if (asset != null) {
-                vo.setAssetName(asset.getAssetName());
-                vo.setAssetCode(asset.getAssetCode());
-            }
+    private boolean hasMethod(Object obj, String name, Class<?> paramType) {
+        try {
+            obj.getClass().getMethod(name, paramType);
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
         }
     }
 }
