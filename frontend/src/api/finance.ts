@@ -1,9 +1,9 @@
 import request from './request'
 
-export function syncDepreciation(data: Record<string, any>) {
-  return request.post('/finance/sync-depreciation', data)
+export function syncDepreciation(month: string) {
+  return request.post('/finance/sync-depreciation', null, { params: { month } })
 }
 
-export function getSyncRecords() {
-  return request.get('/finance/sync-records')
+export function getSyncRecords(params: { pageNum: number; pageSize: number }) {
+  return request.get('/finance/sync-records', { params })
 }
