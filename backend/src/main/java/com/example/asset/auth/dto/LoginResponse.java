@@ -16,4 +16,5 @@ public class LoginResponse {
     private String realName;
     private String department;
     private List<String> roles;
+    private List<String> permissions;
 }
