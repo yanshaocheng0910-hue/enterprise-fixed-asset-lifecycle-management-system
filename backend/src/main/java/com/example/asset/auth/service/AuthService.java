@@ -9,6 +9,7 @@ import com.example.asset.common.ResultCode;
 import com.example.asset.context.LoginUser;
 import com.example.asset.context.UserContext;
 import com.example.asset.user.entity.SysUser;
+import com.example.asset.user.mapper.SysPermissionMapper;
 import com.example.asset.user.mapper.SysUserMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,11 +20,16 @@ import java.util.List;
 public class AuthService {
 
     private final SysUserMapper sysUserMapper;
+    private final SysPermissionMapper sysPermissionMapper;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
-    public AuthService(SysUserMapper sysUserMapper, JwtUtil jwtUtil, PasswordEncoder passwordEncoder) {
+    public AuthService(SysUserMapper sysUserMapper,
+                       SysPermissionMapper sysPermissionMapper,
+                       JwtUtil jwtUtil,
+                       PasswordEncoder passwordEncoder) {
         this.sysUserMapper = sysUserMapper;
+        this.sysPermissionMapper = sysPermissionMapper;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
     }
@@ -42,6 +48,7 @@ public class AuthService {
             throw new BusinessException(ResultCode.BAD_REQUEST, "用户名或密码错误");
         }
         List<String> roles = sysUserMapper.selectRoleCodesByUserId(user.getId());
+        List<String> permissions = sysPermissionMapper.selectPermissionCodesByUserId(user.getId());
         LoginUser loginUser = LoginUser.builder()
                 .userId(user.getId())
                 .username(user.getUsername())
@@ -55,6 +62,7 @@ public class AuthService {
                 .realName(user.getRealName())
                 .department(user.getDepartment())
                 .roles(roles)
+                .permissions(permissions)
                 .build();
     }
 
@@ -68,6 +76,7 @@ public class AuthService {
             throw new BusinessException(ResultCode.NOT_FOUND, "当前用户不存在");
         }
         List<String> roles = sysUserMapper.selectRoleCodesByUserId(userId);
+        List<String> permissions = sysPermissionMapper.selectPermissionCodesByUserId(userId);
         return LoginResponse.builder()
                 .token(null)
                 .tokenType("Bearer")
@@ -76,6 +85,7 @@ public class AuthService {
                 .realName(user.getRealName())
                 .department(user.getDepartment())
                 .roles(roles)
+                .permissions(permissions)
                 .build();
     }
 }
