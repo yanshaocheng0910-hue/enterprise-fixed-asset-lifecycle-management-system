@@ -52,7 +52,7 @@
 | 类别 | 选型 | 版本 |
 |---|---|---|
 | 框架 | Spring Boot | 3.3.2 |
-| 语言 | Java | 21 |
+| 语言 | Java | 17 |
 | ORM | MyBatis-Plus | 3.5.7 |
 | 数据库 | MySQL | 8 |
 | 鉴权 | JWT（jjwt） | 0.12.6 |
