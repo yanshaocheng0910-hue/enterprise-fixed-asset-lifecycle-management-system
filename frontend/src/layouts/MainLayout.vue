@@ -46,6 +46,10 @@
           <el-icon><Connection /></el-icon>
           <span>财务数据</span>
         </el-menu-item>
+        <el-menu-item index="/warning-center">
+          <el-icon><Warning /></el-icon>
+          <span>预警中心</span>
+        </el-menu-item>
         <el-menu-item index="/ai/analysis" v-if="authStore.hasPermission('ai:view')">
           <el-icon><Cpu /></el-icon>
           <span>AI 辅助分析</span>

@@ -103,6 +103,12 @@ const router = createRouter({
           meta: { title: '财务数据模拟同步', permission: 'finance:view' }
         },
         {
+          path: 'warning-center',
+          name: 'WarningCenter',
+          component: () => import('@/views/warning/WarningCenter.vue'),
+          meta: { title: '预警中心' }
+        },
+        {
           path: 'ai/analysis',
           name: 'AiAnalysis',
           component: () => import('@/views/ai/AiAnalysis.vue'),

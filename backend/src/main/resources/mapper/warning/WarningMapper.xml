@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.asset.warning.mapper.WarningMapper">
+
+    <!-- 低净值资产：net_value / original_value <= 0.2 且未报废 -->
+    <select id="selectLowValueAssets" resultType="com.example.asset.warning.vo.WarningItemVO">
+        SELECT
+            a.id AS id,
+            a.id AS assetId,
+            a.asset_code AS assetCode,
+            a.asset_name AS assetName,
+            CONCAT('低净值资产：', a.asset_name, '（净值率 ', ROUND(a.net_value / a.original_value * 100, 2), '%）') AS title,
+            CONCAT('资产编号 ', a.asset_code, '，原值 ', a.original_value, ' 元，净值 ', a.net_value, ' 元，净值率低于 20%') AS description,
+            '建议评估资产是否需要报废或调拨' AS suggestion
+        FROM asset a
+        WHERE a.deleted = 0
+          AND a.status NOT IN ('SCRAPPED')
+          AND a.original_value > 0
+          AND a.net_value / a.original_value &lt;= 0.2
+        ORDER BY a.net_value / a.original_value ASC
+    </select>
+
+    <!-- 接近使用年限：剩余月数 < 6 -->
+    <select id="selectNearEndAssets" resultType="com.example.asset.warning.vo.WarningItemVO">
+        SELECT
+            a.id AS id,
+            a.id AS assetId,
+            a.asset_code AS assetCode,
+            a.asset_name AS assetName,
+            CONCAT('接近使用年限：', a.asset_name, '（剩余 ', a.useful_life * 12 - PERIOD_DIFF(DATE_FORMAT(NOW(), '%Y%m'), DATE_FORMAT(a.purchase_date, '%Y%m')), ' 个月）') AS title,
+            CONCAT('资产编号 ', a.asset_code, '，购置日期 ', DATE_FORMAT(a.purchase_date, '%Y-%m-%d'), '，使用年限 ', a.useful_life, ' 年，剩余使用时间不足 6 个月') AS description,
+            '建议安排资产报废评估或续用审批' AS suggestion
+        FROM asset a
+        WHERE a.deleted = 0
+          AND a.status NOT IN ('SCRAPPED')
+          AND a.useful_life IS NOT NULL
+          AND a.purchase_date IS NOT NULL
+          AND a.useful_life * 12 - PERIOD_DIFF(DATE_FORMAT(NOW(), '%Y%m'), DATE_FORMAT(a.purchase_date, '%Y%m')) &lt; 6
+        ORDER BY a.useful_life * 12 - PERIOD_DIFF(DATE_FORMAT(NOW(), '%Y%m'), DATE_FORMAT(a.purchase_date, '%Y%m')) ASC
+    </select>
+
+    <!-- 长期闲置：status=IDLE 且最近操作时间或 created_at 距今 > 90 天 -->
+    <select id="selectIdleLongTimeAssets" resultType="com.example.asset.warning.vo.WarningItemVO">
+        SELECT * FROM (
+            SELECT
+                a.id AS id,
+                a.id AS assetId,
+                a.asset_code AS assetCode,
+                a.asset_name AS assetName,
+                a.created_at AS assetCreatedAt,
+                (SELECT MAX(l.operation_time) FROM asset_operation_log l WHERE l.asset_id = a.id) AS lastOperationTime
+            FROM asset a
+            WHERE a.deleted = 0
+              AND a.status = 'IDLE'
+        ) t
+        WHERE COALESCE(t.lastOperationTime, t.assetCreatedAt) &lt; #{thresholdDate}
+        ORDER BY COALESCE(t.lastOperationTime, t.assetCreatedAt) ASC
+    </select>
+
+    <!-- 维修超期：维修单 status=DRAFT 或 asset.status=REPAIRING 且 repair_start_date 距今 > 30 天 -->
+    <select id="selectRepairOverdueAssets" resultType="com.example.asset.warning.vo.WarningItemVO">
+        SELECT
+            r.id AS id,
+            r.id AS businessId,
+            r.asset_id AS assetId,
+            a.asset_code AS assetCode,
+            a.asset_name AS assetName,
+            CONCAT('维修超期：', COALESCE(a.asset_name, '未知资产'), '（维修单 ', r.order_code, '，已超 ', DATEDIFF(CURDATE(), r.repair_start_date), ' 天）') AS title,
+            CONCAT('资产编号 ', COALESCE(a.asset_code, '-'), '，维修单号 ', r.order_code, '，维修开始日期 ', DATE_FORMAT(r.repair_start_date, '%Y-%m-%d'), '，维修单状态 ', r.status) AS description,
+            '建议跟进维修进度或安排报废' AS suggestion
+        FROM asset_repair_order r
+        LEFT JOIN asset a ON a.id = r.asset_id
+        WHERE r.repair_start_date IS NOT NULL
+          AND r.repair_start_date &lt; #{thresholdDate}
+          AND (r.status = 'DRAFT' OR a.status = 'REPAIRING')
+        ORDER BY r.repair_start_date ASC
+    </select>
+
+    <!-- 盘点异常：result IS NOT NULL AND result != 'NORMAL' -->
+    <select id="selectInventoryAbnormalRecords" resultType="com.example.asset.warning.vo.WarningItemVO">
+        SELECT
+            r.id AS id,
+            r.id AS businessId,
+            r.task_id AS taskId,
+            r.asset_id AS assetId,
+            a.asset_code AS assetCode,
+            a.asset_name AS assetName,
+            CONCAT('盘点异常：', COALESCE(a.asset_name, '未知资产'), '（', r.result, '）') AS title,
+            CONCAT('资产编号 ', COALESCE(a.asset_code, '-'), '，盘点结果 ', r.result, '，任务 ID ', r.task_id, COALESCE(CONCAT('，备注 ', r.remark), '')) AS description,
+            '建议核查资产实物状态并更新台账' AS suggestion
+        FROM inventory_record r
+        LEFT JOIN asset a ON a.id = r.asset_id
+        WHERE r.result IS NOT NULL
+          AND r.result != 'NORMAL'
+        ORDER BY r.scanned_at DESC
+    </select>
+
+    <!-- 财务同步异常：status != 'SUCCESS' -->
+    <select id="selectFinanceSyncAbnormalRecords" resultType="com.example.asset.warning.vo.WarningItemVO">
+        SELECT
+            f.id AS id,
+            f.id AS businessId,
+            NULL AS assetId,
+            NULL AS assetCode,
+            NULL AS assetName,
+            CONCAT('财务同步异常：', f.sync_month, '（状态 ', f.status, '）') AS title,
+            CONCAT('同步月份 ', f.sync_month, '，状态 ', f.status, COALESCE(CONCAT('，备注 ', f.remark), '')) AS description,
+            '建议核查财务同步流程并重新执行同步' AS suggestion
+        FROM finance_sync_record f
+        WHERE f.status != 'SUCCESS'
+        ORDER BY f.created_at DESC
+    </select>
+
+    <!-- 当月 SUCCESS 同步记录数 -->
+    <select id="countCurrentMonthSuccessSync" resultType="int">
+        SELECT COUNT(*) FROM finance_sync_record
+        WHERE sync_month = #{currentMonth}
+          AND status = 'SUCCESS'
+    </select>
+</mapper>
