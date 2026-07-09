@@ -24,3 +24,18 @@ export function getCategoryStats() {
 export function getDepreciationTrend() {
   return request.get('/depreciation/trend')
 }
+
+/** 折旧总览 */
+export function getDepreciationSummary() {
+  return request.get('/depreciation/summary')
+}
+
+/** 低净值资产列表 */
+export function getLowValueAssets() {
+  return request.get('/depreciation/low-value-assets')
+}
+
+/** 接近使用年限资产列表 */
+export function getNearEndAssets() {
+  return request.get('/depreciation/near-end-assets')
+}

@@ -135,4 +135,41 @@ public class DepreciationReportService {
 
         return result;
     }
+
+    public DepreciationSummaryVO getSummary() {
+        DepreciationSummaryVO summary = depreciationReportMapper.selectDepreciationSummary();
+        if (summary == null) {
+            summary = new DepreciationSummaryVO();
+            summary.setAssetCount(0);
+            summary.setTotalOriginalValue(BigDecimal.ZERO);
+            summary.setTotalNetValue(BigDecimal.ZERO);
+            summary.setTotalAccumulatedDepreciation(BigDecimal.ZERO);
+        }
+        // 计算平均折旧率
+        if (summary.getTotalOriginalValue() != null
+                && summary.getTotalOriginalValue().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal rate = summary.getTotalAccumulatedDepreciation()
+                    .divide(summary.getTotalOriginalValue(), 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(2, RoundingMode.HALF_UP);
+            summary.setAverageDepreciationRate(rate);
+        } else {
+            summary.setAverageDepreciationRate(BigDecimal.ZERO);
+        }
+        // 低净值资产数
+        List<LowValueAssetVO> lowValueAssets = depreciationReportMapper.selectLowValueAssets();
+        summary.setLowValueAssetCount(lowValueAssets.size());
+        // 接近报废资产数
+        List<NearEndAssetVO> nearEndAssets = depreciationReportMapper.selectNearEndAssets();
+        summary.setNearEndAssetCount(nearEndAssets.size());
+        return summary;
+    }
+
+    public List<LowValueAssetVO> getLowValueAssets() {
+        return depreciationReportMapper.selectLowValueAssets();
+    }
+
+    public List<NearEndAssetVO> getNearEndAssets() {
+        return depreciationReportMapper.selectNearEndAssets();
+    }
 }

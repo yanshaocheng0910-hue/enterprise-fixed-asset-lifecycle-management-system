@@ -44,4 +44,19 @@ public class DepreciationReportController {
     public Result<List<DepreciationTrendVO>> trend() {
         return Result.success(depreciationReportService.trend());
     }
+
+    @GetMapping("/summary")
+    public Result<DepreciationSummaryVO> summary() {
+        return Result.success(depreciationReportService.getSummary());
+    }
+
+    @GetMapping("/low-value-assets")
+    public Result<List<LowValueAssetVO>> lowValueAssets() {
+        return Result.success(depreciationReportService.getLowValueAssets());
+    }
+
+    @GetMapping("/near-end-assets")
+    public Result<List<NearEndAssetVO>> nearEndAssets() {
+        return Result.success(depreciationReportService.getNearEndAssets());
+    }
 }
