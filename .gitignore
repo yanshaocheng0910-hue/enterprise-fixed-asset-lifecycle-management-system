@@ -30,3 +30,13 @@ Thumbs.db
 
 # Logs
 *.log
+
+# AI Agent
+HANDOFF.md
+AGENTS.md
+.claude/
+CLAUDE.md
+
+# Playwright / Screenshots
+.playwright-mcp/
+*.png
