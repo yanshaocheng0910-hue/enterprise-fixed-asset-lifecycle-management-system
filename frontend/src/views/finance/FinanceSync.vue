@@ -1,10 +1,19 @@
 <template>
   <div>
     <PageHeader title="财务数据模拟同步" description="网页端财务数据查看与模拟同步记录，用于演示资产折旧和财务数据流转。" />
-    <div style="background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:20px;">
-      <el-alert title="模拟同步说明" type="info" show-icon :closable="false" description="本模块为网页端模拟同步记录，用于演示资产折旧数据流转。" style="margin-bottom:16px;" />
 
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <!-- 总览卡片 -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+      <DataCard label="同步记录总数" :value="total" sub="条" />
+      <DataCard label="最近同步月份" :value="latestRecord?.syncMonth ?? '-'" />
+      <DataCard label="累计同步折旧" :value="formatMoney(totalSyncedDepreciation)" sub="元" />
+      <DataCard label="最近同步状态" :value="latestRecord?.status ?? '-'" />
+    </div>
+
+    <!-- 操作区域 -->
+    <div style="background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:16px;margin-bottom:16px;">
+      <el-alert title="模拟同步说明" type="info" show-icon :closable="false" description="本模块为网页端模拟同步记录，用于演示资产折旧数据流转，不会调用外部财务系统。" style="margin-bottom:16px;" />
+      <div style="display:flex;align-items:center;gap:12px;">
         <span style="font-size:14px;color:var(--color-text-secondary);">同步月份：</span>
         <el-date-picker
           v-model="syncMonth"
@@ -14,26 +23,47 @@
           value-format="YYYY-MM"
           :disabled-date="disabledDate"
         />
-        <el-button type="primary" :loading="syncing" @click="handleSync">同步本月折旧</el-button>
+        <el-button type="primary" :loading="syncing" @click="handleSync">模拟同步折旧数据</el-button>
       </div>
+    </div>
 
-      <el-divider />
-
+    <!-- 同步记录表格 -->
+    <div style="background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:12px;">
       <el-table :data="tableData" border stripe v-loading="loading">
-        <el-table-column label="同步时间" width="180">
-          <template #default="{ row }">{{ row.createdAt }}</template>
-        </el-table-column>
+        <el-table-column prop="syncBatchNo" label="批次号" width="180" />
         <el-table-column prop="syncMonth" label="同步月份" width="100" />
-        <el-table-column label="总金额" width="140">
-          <template #default="{ row }">{{ formatAmount(row.totalAmount) }}</template>
+        <el-table-column prop="assetCount" label="资产数量" width="90" align="center" />
+        <el-table-column label="原值总额" width="130" align="right">
+          <template #default="{ row }">{{ formatMoney(row.totalOriginalValue) }}</template>
         </el-table-column>
-        <el-table-column prop="recordCount" label="记录数" width="80" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column label="净值总额" width="130" align="right">
+          <template #default="{ row }">{{ formatMoney(row.totalNetValue) }}</template>
+        </el-table-column>
+        <el-table-column label="累计折旧" width="130" align="right">
+          <template #default="{ row }">{{ formatMoney(row.totalAccumulatedDepreciation) }}</template>
+        </el-table-column>
+        <el-table-column label="本月折旧额" width="130" align="right">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'SUCCESS' ? 'success' : 'danger'" size="small">{{ row.status === 'SUCCESS' ? '成功' : '失败' }}</el-tag>
+            <span style="color:#D97706;font-weight:600;">{{ formatMoney(row.monthlyDepreciation) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="remark" label="备注" />
+        <el-table-column label="状态" width="90">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'SUCCESS' ? 'success' : 'danger'" size="small">
+              {{ row.status === 'SUCCESS' ? '成功' : '失败' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="syncTime" label="同步时间" width="170" />
+        <el-table-column prop="operatorName" label="操作人" width="90" />
+        <el-table-column label="操作" width="80" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="openDetail(row.id)">详情</el-button>
+          </template>
+        </el-table-column>
+        <template #empty>
+          <el-empty description="暂无同步记录" />
+        </template>
       </el-table>
 
       <div style="display:flex;justify-content:flex-end;margin-top:12px;">
@@ -48,22 +78,62 @@
         />
       </div>
     </div>
+
+    <!-- 详情弹窗 -->
+    <el-dialog v-model="detailVisible" title="同步记录详情" width="600px">
+      <el-descriptions :column="2" border v-if="detailData">
+        <el-descriptions-item label="批次号">{{ detailData.syncBatchNo ?? '-' }}</el-descriptions-item>
+        <el-descriptions-item label="同步月份">{{ detailData.syncMonth }}</el-descriptions-item>
+        <el-descriptions-item label="资产数量">{{ detailData.assetCount }} 件</el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <el-tag :type="detailData.status === 'SUCCESS' ? 'success' : 'danger'" size="small">
+            {{ detailData.status === 'SUCCESS' ? '成功' : '失败' }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="原值总额">{{ formatMoney(detailData.totalOriginalValue) }} 元</el-descriptions-item>
+        <el-descriptions-item label="净值总额">{{ formatMoney(detailData.totalNetValue) }} 元</el-descriptions-item>
+        <el-descriptions-item label="累计折旧">{{ formatMoney(detailData.totalAccumulatedDepreciation) }} 元</el-descriptions-item>
+        <el-descriptions-item label="本月折旧额">{{ formatMoney(detailData.monthlyDepreciation) }} 元</el-descriptions-item>
+        <el-descriptions-item label="操作人">{{ detailData.operatorName ?? '-' }}</el-descriptions-item>
+        <el-descriptions-item label="同步时间">{{ detailData.syncTime ?? '-' }}</el-descriptions-item>
+        <el-descriptions-item label="备注" :span="2">{{ detailData.remark ?? '-' }}</el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="detailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
-import { syncDepreciation, getSyncRecords } from '@/api/finance'
+import DataCard from '@/components/DataCard.vue'
+import {
+  syncDepreciationData,
+  getFinanceSyncRecords,
+  getFinanceSyncDetail,
+  type FinanceSyncRecordItem
+} from '@/api/finance'
 
 const syncMonth = ref(getDefaultMonth())
 const syncing = ref(false)
 const loading = ref(false)
-const tableData = ref<any[]>([])
+const tableData = ref<FinanceSyncRecordItem[]>([])
 const pageNum = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+
+// 详情弹窗
+const detailVisible = ref(false)
+const detailData = ref<FinanceSyncRecordItem | null>(null)
+
+// 总览计算
+const latestRecord = computed(() => tableData.value[0] ?? null)
+const totalSyncedDepreciation = computed(() =>
+  tableData.value.reduce((sum, r) => sum + Number(r.monthlyDepreciation || 0), 0)
+)
 
 function getDefaultMonth() {
   const now = new Date()
@@ -76,7 +146,7 @@ function disabledDate(date: Date) {
   return date.getTime() > Date.now()
 }
 
-function formatAmount(val: string | number) {
+function formatMoney(val: any) {
   if (val == null) return '--'
   return Number(val).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
@@ -84,7 +154,7 @@ function formatAmount(val: string | number) {
 async function fetchRecords() {
   loading.value = true
   try {
-    const res = await getSyncRecords({ pageNum: pageNum.value, pageSize: pageSize.value })
+    const res = await getFinanceSyncRecords({ pageNum: pageNum.value, pageSize: pageSize.value })
     tableData.value = res.data?.records || []
     total.value = res.data?.total || 0
   } finally {
@@ -99,19 +169,24 @@ async function handleSync() {
   }
   syncing.value = true
   try {
-    const res = await syncDepreciation(syncMonth.value)
-    if (res.data?.success) {
-      const msg = res.data.message || '同步成功'
-      ElMessage.success(`${msg}：${res.data.syncMonth} 共 ${res.data.recordCount} 条记录，合计 ${formatAmount(res.data.totalAmount)} 元`)
-      pageNum.value = 1
-      await fetchRecords()
-    } else {
-      ElMessage.warning(res.data?.message || '同步失败')
-    }
+    const res = await syncDepreciationData(syncMonth.value)
+    ElMessage.success(`模拟同步成功：${res.data.syncMonth}，资产 ${res.data.assetCount} 件，本月折旧 ${formatMoney(res.data.monthlyDepreciation)} 元`)
+    pageNum.value = 1
+    await fetchRecords()
   } catch {
     // 错误已在 request 拦截器中处理
   } finally {
     syncing.value = false
+  }
+}
+
+async function openDetail(id: number) {
+  try {
+    const res = await getFinanceSyncDetail(id)
+    detailData.value = res.data
+    detailVisible.value = true
+  } catch {
+    // 错误已在 request 拦截器中处理
   }
 }
 

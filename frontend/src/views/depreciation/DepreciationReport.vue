@@ -3,11 +3,12 @@
     <PageHeader title="折旧报表" description="查看固定资产折旧总览、部门/分类价值统计、月度趋势及风险资产分析。" />
 
     <!-- 折旧总览指标卡 -->
-    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:16px;">
       <DataCard label="资产总数" :value="summary.assetCount ?? '-'" sub="件" />
       <DataCard label="原值总额" :value="formatMoney(summary.totalOriginalValue)" sub="元" />
       <DataCard label="净值总额" :value="formatMoney(summary.totalNetValue)" sub="元" />
       <DataCard label="累计折旧" :value="formatMoney(summary.totalAccumulatedDepreciation)" sub="元" />
+      <DataCard label="本月折旧额" :value="formatMoney(summary.monthlyDepreciation)" sub="元" />
       <DataCard label="平均折旧率" :value="summary.averageDepreciationRate != null ? Number(summary.averageDepreciationRate).toFixed(2) + '%' : '-'" />
       <DataCard label="风险资产" :value="(summary.lowValueAssetCount ?? 0) + (summary.nearEndAssetCount ?? 0)" sub="件" />
     </div>

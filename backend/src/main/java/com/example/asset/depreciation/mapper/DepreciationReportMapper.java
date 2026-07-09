@@ -28,4 +28,6 @@ public interface DepreciationReportMapper {
     List<LowValueAssetVO> selectLowValueAssets();
 
     List<NearEndAssetVO> selectNearEndAssets();
+
+    java.math.BigDecimal selectComputedMonthlyDepreciation();
 }

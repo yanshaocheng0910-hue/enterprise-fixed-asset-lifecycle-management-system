@@ -3,92 +3,111 @@ package com.example.asset.finance.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.asset.common.PageResult;
-import com.example.asset.depreciation.mapper.DepreciationRecordMapper;
+import com.example.asset.context.UserContext;
+import com.example.asset.depreciation.mapper.DepreciationReportMapper;
+import com.example.asset.depreciation.vo.DepreciationSummaryVO;
 import com.example.asset.finance.entity.FinanceSyncRecord;
 import com.example.asset.finance.mapper.FinanceSyncRecordMapper;
+import com.example.asset.finance.vo.FinanceSyncRecordVO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class FinanceService {
 
-    private final DepreciationRecordMapper depreciationRecordMapper;
+    private final DepreciationReportMapper depreciationReportMapper;
     private final FinanceSyncRecordMapper financeSyncRecordMapper;
 
-    public FinanceService(DepreciationRecordMapper depreciationRecordMapper,
+    public FinanceService(DepreciationReportMapper depreciationReportMapper,
                           FinanceSyncRecordMapper financeSyncRecordMapper) {
-        this.depreciationRecordMapper = depreciationRecordMapper;
+        this.depreciationReportMapper = depreciationReportMapper;
         this.financeSyncRecordMapper = financeSyncRecordMapper;
     }
 
     @Transactional
-    public Map<String, Object> syncDepreciation(String month) {
-        Map<String, Object> result = new LinkedHashMap<>();
-
+    public FinanceSyncRecordVO syncDepreciation(String month) {
         // 校验月份格式
-        try {
-            YearMonth.parse(month, DateTimeFormatter.ofPattern("yyyy-MM"));
-        } catch (Exception e) {
-            result.put("success", false);
-            result.put("message", "月份格式错误，请使用 YYYY-MM 格式");
-            return result;
-        }
+        YearMonth.parse(month, DateTimeFormatter.ofPattern("yyyy-MM"));
 
         // 检查是否已同步
         FinanceSyncRecord existing = financeSyncRecordMapper.selectByMonth(month);
         if (existing != null) {
-            result.put("success", true);
-            result.put("message", "已是最新数据");
-            result.put("syncMonth", existing.getSyncMonth());
-            result.put("totalAmount", existing.getTotalAmount());
-            result.put("recordCount", existing.getRecordCount());
-            result.put("syncTime", existing.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-            return result;
+            return toVO(existing);
         }
 
-        // 查询该月折旧数据
-        BigDecimal totalAmount = depreciationRecordMapper.sumMonthlyDepreciationByMonth(month);
-        Integer recordCount = depreciationRecordMapper.countByMonth(month);
-
-        if (recordCount == null || recordCount == 0) {
-            result.put("success", false);
-            result.put("message", "该月份暂无折旧数据，请先计提折旧");
-            return result;
+        // 查询资产价值快照
+        DepreciationSummaryVO summary = depreciationReportMapper.selectDepreciationSummary();
+        BigDecimal monthlyDep = depreciationReportMapper.selectComputedMonthlyDepreciation();
+        if (monthlyDep == null) {
+            monthlyDep = BigDecimal.ZERO;
         }
+        monthlyDep = monthlyDep.setScale(2, RoundingMode.HALF_UP);
 
-        // 写入同步记录
-        FinanceSyncRecord syncRecord = new FinanceSyncRecord();
-        syncRecord.setSyncMonth(month);
-        syncRecord.setTotalAmount(totalAmount != null ? totalAmount : BigDecimal.ZERO);
-        syncRecord.setRecordCount(recordCount);
-        syncRecord.setStatus("SUCCESS");
-        syncRecord.setRemark("本月折旧数据已同步至财务系统");
-        syncRecord.setCreatedAt(LocalDateTime.now());
-        financeSyncRecordMapper.insert(syncRecord);
+        // 生成同步记录
+        FinanceSyncRecord record = new FinanceSyncRecord();
+        record.setSyncMonth(month);
+        record.setSyncBatchNo("FS" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
+        record.setTotalAmount(monthlyDep); // 兼容原有字段
+        record.setRecordCount(summary != null ? summary.getAssetCount() : 0);
+        record.setAssetCount(summary != null ? summary.getAssetCount() : 0);
+        record.setTotalOriginalValue(summary != null ? summary.getTotalOriginalValue() : BigDecimal.ZERO);
+        record.setTotalNetValue(summary != null ? summary.getTotalNetValue() : BigDecimal.ZERO);
+        record.setTotalAccumulatedDepreciation(summary != null ? summary.getTotalAccumulatedDepreciation() : BigDecimal.ZERO);
+        record.setMonthlyDepreciation(monthlyDep);
+        record.setStatus("SUCCESS");
+        record.setOperatorName(UserContext.getUsername() != null ? UserContext.getUsername() : "system");
+        record.setRemark("模拟同步成功，未调用外部财务系统");
+        record.setCreatedAt(LocalDateTime.now());
 
-        result.put("success", true);
-        result.put("message", "同步成功");
-        result.put("syncMonth", month);
-        result.put("totalAmount", syncRecord.getTotalAmount());
-        result.put("recordCount", syncRecord.getRecordCount());
-        result.put("syncTime", syncRecord.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        return result;
+        financeSyncRecordMapper.insert(record);
+        return toVO(record);
     }
 
-    public PageResult<FinanceSyncRecord> syncRecords(Long pageNum, Long pageSize) {
+    public PageResult<FinanceSyncRecordVO> syncRecords(Long pageNum, Long pageSize) {
         long current = pageNum == null || pageNum < 1 ? 1L : pageNum;
         long size = pageSize == null || pageSize < 1 ? 10L : pageSize;
         LambdaQueryWrapper<FinanceSyncRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByDesc(FinanceSyncRecord::getCreatedAt);
         Page<FinanceSyncRecord> page = new Page<>(current, size);
         Page<FinanceSyncRecord> result = financeSyncRecordMapper.selectPage(page, wrapper);
-        return PageResult.of(result);
+        List<FinanceSyncRecordVO> voList = result.getRecords().stream()
+                .map(this::toVO)
+                .collect(Collectors.toList());
+        return new PageResult<>(voList, result.getTotal(), result.getCurrent(), result.getSize());
+    }
+
+    public FinanceSyncRecordVO getSyncDetail(Long id) {
+        FinanceSyncRecord record = financeSyncRecordMapper.selectById(id);
+        if (record == null) {
+            return null;
+        }
+        return toVO(record);
+    }
+
+    private FinanceSyncRecordVO toVO(FinanceSyncRecord record) {
+        FinanceSyncRecordVO vo = new FinanceSyncRecordVO();
+        vo.setId(record.getId());
+        vo.setSyncBatchNo(record.getSyncBatchNo());
+        vo.setSyncMonth(record.getSyncMonth());
+        vo.setAssetCount(record.getAssetCount());
+        vo.setTotalOriginalValue(record.getTotalOriginalValue());
+        vo.setTotalNetValue(record.getTotalNetValue());
+        vo.setTotalAccumulatedDepreciation(record.getTotalAccumulatedDepreciation());
+        vo.setMonthlyDepreciation(record.getMonthlyDepreciation());
+        vo.setStatus(record.getStatus());
+        vo.setOperatorName(record.getOperatorName());
+        vo.setSyncTime(record.getCreatedAt() != null
+                ? record.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                : null);
+        vo.setRemark(record.getRemark());
+        return vo;
     }
 }

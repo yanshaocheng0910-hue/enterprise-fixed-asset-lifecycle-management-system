@@ -11,6 +11,7 @@ public class DepreciationSummaryVO {
     private BigDecimal totalOriginalValue;
     private BigDecimal totalNetValue;
     private BigDecimal totalAccumulatedDepreciation;
+    private BigDecimal monthlyDepreciation;
     private BigDecimal averageDepreciationRate;
     private Integer lowValueAssetCount;
     private Integer nearEndAssetCount;

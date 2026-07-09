@@ -129,4 +129,15 @@
           AND useful_life * 12 - PERIOD_DIFF(DATE_FORMAT(NOW(), '%Y%m'), DATE_FORMAT(purchase_date, '%Y%m')) &lt; 12
         ORDER BY remainingMonths ASC
     </select>
+
+    <!-- 基于资产表计算本月折旧额 -->
+    <select id="selectComputedMonthlyDepreciation" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(original_value * (1 - residual_rate) / (useful_life * 12)), 0)
+        FROM asset
+        WHERE deleted = 0
+          AND status NOT IN ('SCRAPPED')
+          AND original_value > 0
+          AND useful_life > 0
+          AND residual_rate IS NOT NULL
+    </select>
 </mapper>

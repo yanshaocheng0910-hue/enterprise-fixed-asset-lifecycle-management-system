@@ -162,6 +162,9 @@ public class DepreciationReportService {
         // 接近报废资产数
         List<NearEndAssetVO> nearEndAssets = depreciationReportMapper.selectNearEndAssets();
         summary.setNearEndAssetCount(nearEndAssets.size());
+        // 本月折旧额（基于资产表计算）
+        BigDecimal monthlyDep = depreciationReportMapper.selectComputedMonthlyDepreciation();
+        summary.setMonthlyDepreciation(monthlyDep != null ? monthlyDep.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO);
         return summary;
     }
 
