@@ -20,6 +20,10 @@ frontend/.vite/
 *.swo
 *~
 
+# IDE artifacts (Trae / Maven wrapper)
+.trae-html-share-packages/
+backend/custom-settings.xml
+
 # OS
 .DS_Store
 Thumbs.db
@@ -27,6 +31,8 @@ Thumbs.db
 # Env
 .env
 .env.local
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-local.properties
 
 # Logs
 *.log

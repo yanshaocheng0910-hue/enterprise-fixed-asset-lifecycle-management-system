@@ -65,10 +65,11 @@ public interface AiAnalysisMapper {
             "ORDER BY a.net_value ASC LIMIT 10")
     List<Map<String, Object>> selectTopRiskAssets();
 
-    @Select("SELECT DATE_FORMAT(d.depreciation_date, '%Y-%m') AS month, " +
+    @Select("SELECT d.depreciation_month AS month, " +
             "COALESCE(SUM(d.monthly_depreciation), 0) AS monthly_dep, " +
             "COALESCE(SUM(d.accumulated_depreciation), 0) AS acc_dep " +
-            "FROM depreciation_record d WHERE d.depreciation_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) " +
-            "GROUP BY DATE_FORMAT(d.depreciation_date, '%Y-%m') ORDER BY month")
+            "FROM depreciation_record d " +
+            "WHERE d.depreciation_month >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 12 MONTH), '%Y-%m') " +
+            "GROUP BY d.depreciation_month ORDER BY month")
     List<Map<String, Object>> selectMonthlyDepreciationTrend();
 }

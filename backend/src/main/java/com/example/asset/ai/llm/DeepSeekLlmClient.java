@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -20,6 +21,7 @@ import java.util.Map;
 /**
  * DeepSeek 大模型客户端（OpenAI 兼容 API）
  */
+@Primary
 @Component
 public class DeepSeekLlmClient implements LlmClient {
 
