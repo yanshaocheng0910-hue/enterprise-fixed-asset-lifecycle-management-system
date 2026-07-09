@@ -22,4 +22,7 @@ export interface DepartmentRankingItem {
 export interface TrendPoint {
   month: string
   value: number
+  monthlyDepreciation?: number
+  accumulatedDepreciation?: number
+  netValue?: number
 }

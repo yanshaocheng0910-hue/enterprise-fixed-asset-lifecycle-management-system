@@ -4,6 +4,12 @@
 
     <!-- Search Form -->
     <div class="search-form">
+      <div class="search-toolbar">
+        <el-button type="primary" @click="openCreate">新增资产</el-button>
+        <el-button type="success" :loading="exporting" @click="handleExport">
+          <el-icon><Download /></el-icon>导出 Excel
+        </el-button>
+      </div>
       <el-form :model="query" :inline="true" size="default" label-width="80">
         <el-form-item label="资产编号"><el-input v-model="query.assetCode" placeholder="资产编号" clearable style="width:150px" /></el-form-item>
         <el-form-item label="资产名称"><el-input v-model="query.assetName" placeholder="资产名称" clearable style="width:150px" /></el-form-item>
@@ -12,38 +18,42 @@
             <el-option v-for="c in categories" :key="c.id" :label="c.categoryName" :value="c.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="所属部门">
-          <el-select v-model="query.department" placeholder="部门" clearable filterable style="width:130px">
-            <el-option v-for="d in departmentOptions" :key="d.id" :label="d.label" :value="d.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="使用人">
-          <el-select v-model="query.keeper" placeholder="使用人" clearable filterable style="width:130px">
-            <el-option v-for="k in keeperOptions" :key="k.id" :label="k.label" :value="k.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="存放地点">
-          <el-select v-model="query.location" placeholder="地点" clearable filterable style="width:130px">
-            <el-option v-for="l in locationOptions" :key="l.id" :label="l.label" :value="l.value" />
-          </el-select>
-        </el-form-item>
         <el-form-item label="资产状态">
           <el-select v-model="query.status" placeholder="选择状态" clearable style="width:140px">
             <el-option v-for="s in statusOptions" :key="s.code" :label="s.label" :value="s.code" />
           </el-select>
         </el-form-item>
-        <el-form-item label="购置日期">
-          <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" style="width:240px" />
-        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="search">查询</el-button>
           <el-button @click="resetQuery">重置</el-button>
-          <el-button type="primary" @click="openCreate">新增资产</el-button>
-          <el-button type="success" :loading="exporting" @click="handleExport">
-            <el-icon><Download /></el-icon>导出 Excel
+          <el-button text type="primary" @click="advancedVisible = !advancedVisible">
+            {{ advancedVisible ? '收起高级筛选' : '高级筛选' }}
+            <el-icon style="margin-left:2px"><ArrowDown v-if="!advancedVisible" /><ArrowUp v-else /></el-icon>
           </el-button>
         </el-form-item>
       </el-form>
+      <div v-show="advancedVisible" class="advanced-filter">
+        <el-form :model="query" :inline="true" size="default" label-width="80">
+          <el-form-item label="所属部门">
+            <el-select v-model="query.department" placeholder="部门" clearable filterable style="width:130px">
+              <el-option v-for="d in departmentOptions" :key="d.id" :label="d.label" :value="d.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="使用人">
+            <el-select v-model="query.keeper" placeholder="使用人" clearable filterable style="width:130px">
+              <el-option v-for="k in keeperOptions" :key="k.id" :label="k.label" :value="k.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="存放地点">
+            <el-select v-model="query.location" placeholder="地点" clearable filterable style="width:130px">
+              <el-option v-for="l in locationOptions" :key="l.id" :label="l.label" :value="l.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="购置日期">
+            <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" style="width:240px" />
+          </el-form-item>
+        </el-form>
+      </div>
     </div>
 
     <!-- Table -->
@@ -189,7 +199,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import AssetStatusTag from '@/components/AssetStatusTag.vue'
 import { getAssetPage, createAsset, updateAsset, deleteAsset, getStatusOptions, getCategoryList } from '@/api/asset'
-import { Download } from '@element-plus/icons-vue'
+import { Download, ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 import { exportAssets } from '@/api/export'
 import { formatMoney } from '@/utils/format'
 import { useMasterDataOptions } from '@/composables/useMasterDataOptions'
@@ -200,6 +210,7 @@ const router = useRouter()
 const loading = ref(false)
 const submitLoading = ref(false)
 const exporting = ref(false)
+const advancedVisible = ref(false)
 const tableData = ref<any[]>([])
 const total = ref(0)
 const pageNum = ref(1)
@@ -378,6 +389,19 @@ onMounted(() => { fetchData(); fetchOptions(); loadMasterData() })
   border-radius: 6px;
   border: 1px solid var(--color-border);
   margin-bottom: 12px;
+}
+.search-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--color-border);
+}
+.advanced-filter {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--color-border);
 }
 .table-wrapper {
   background: #fff;

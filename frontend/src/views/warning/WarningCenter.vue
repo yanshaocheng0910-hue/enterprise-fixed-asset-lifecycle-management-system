@@ -40,15 +40,18 @@
         </el-button>
       </div>
 
-      <el-table :data="tableData" border stripe v-loading="loading" max-height="600">
-        <el-table-column label="预警类型" width="140">
+      <el-table :data="tableData" border stripe v-loading="loading" max-height="600" :row-class-name="rowClassName">
+        <el-table-column label="预警类型" width="150">
           <template #default="{ row }">
-            <el-tag :type="typeTagType(row.warningType)" size="small">{{ row.warningTypeName }}</el-tag>
+            <el-tag :type="typeTagType(row.warningType)" size="small" effect="light">{{ row.warningTypeName }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="等级" width="90">
+        <el-table-column label="等级" width="110">
           <template #default="{ row }">
-            <el-tag :type="levelTagType(row.warningLevel)" size="small">{{ levelText(row.warningLevel) }}</el-tag>
+            <el-tag :type="levelTagType(row.warningLevel)" size="small" effect="dark">
+              <el-icon style="margin-right:2px"><WarningFilled v-if="row.warningLevel === 'HIGH'" /><Warning v-else-if="row.warningLevel === 'MEDIUM'" /><InfoFilled v-else /></el-icon>
+              {{ levelText(row.warningLevel) }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="title" label="标题" min-width="220" show-overflow-tooltip />
@@ -104,7 +107,7 @@ import {
   type WarningSummary,
   type WarningItem
 } from '@/api/warning'
-import { Download } from '@element-plus/icons-vue'
+import { Download, WarningFilled, Warning, InfoFilled } from '@element-plus/icons-vue'
 import { exportWarnings } from '@/api/export'
 
 const router = useRouter()
@@ -201,6 +204,12 @@ function typeTagType(type: string): 'primary' | 'success' | 'warning' | 'danger'
   return map[type] || 'info'
 }
 
+function rowClassName({ row }: { row: WarningItem }): string {
+  if (row.warningLevel === 'HIGH') return 'row-high-risk'
+  if (row.warningLevel === 'MEDIUM') return 'row-medium-risk'
+  return ''
+}
+
 function levelTagType(level: string): 'danger' | 'warning' | 'info' {
   const map: Record<string, 'danger' | 'warning' | 'info'> = {
     HIGH: 'danger',
@@ -224,3 +233,18 @@ onMounted(() => {
   fetchItems()
 })
 </script>
+
+<style scoped>
+:deep(.row-high-risk) {
+  background-color: #fef2f2 !important;
+}
+:deep(.row-high-risk:hover > td) {
+  background-color: #fee2e2 !important;
+}
+:deep(.row-medium-risk) {
+  background-color: #fffbeb !important;
+}
+:deep(.row-medium-risk:hover > td) {
+  background-color: #fef3c7 !important;
+}
+</style>

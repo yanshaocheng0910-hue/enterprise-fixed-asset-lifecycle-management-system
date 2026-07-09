@@ -82,6 +82,8 @@
           <span class="breadcrumb">{{ pageTitle }}</span>
         </div>
         <div class="top-bar-right">
+          <el-tag size="small" type="primary" effect="dark" class="role-chip">{{ roleLabel }}</el-tag>
+          <span class="user-dept" v-if="userInfo?.department">{{ userInfo.department }}</span>
           <span class="user-name">{{ userInfo?.realName || userInfo?.username || '用户' }}</span>
           <el-button text @click="handleLogout">退出登录</el-button>
         </div>
@@ -108,6 +110,23 @@ const currentRoute = computed(() => route.path)
 const pageTitle = computed(() => appStore.pageTitle)
 const userInfo = computed(() => authStore.userInfo)
 
+const roleLabel = computed(() => {
+  const roles = authStore.userInfo?.roles || []
+  const map: Record<string, string> = {
+    ADMIN: '系统管理员',
+    ASSET_MANAGER: '资产管理员',
+    DEPT_LEADER: '部门负责人',
+    FINANCE: '财务人员',
+    AUDITOR: '审计人员',
+    OFFICE_STAFF: '普通员工',
+    INVENTORY_CLERK: '盘点人员'
+  }
+  for (const r of roles) {
+    if (map[r]) return map[r]
+  }
+  return '用户'
+})
+
 watch(() => route.meta.title, (val) => {
   if (val) appStore.setPageTitle(val as string)
 }, { immediate: true })
@@ -123,3 +142,18 @@ function handleLogout() {
   router.push('/login')
 }
 </script>
+
+<style scoped>
+.top-bar-right .role-chip {
+  font-weight: 600;
+}
+.top-bar-right .user-dept {
+  font-size: 13px;
+  color: var(--color-text-secondary, #909399);
+}
+.top-bar-right .user-name {
+  font-size: 14px;
+  color: var(--color-text, #303133);
+  font-weight: 600;
+}
+</style>

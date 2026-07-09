@@ -11,7 +11,9 @@
     <div class="table-wrapper">
       <el-table :data="tableData" border stripe v-loading="loading" style="width:100%">
         <el-table-column prop="businessType" label="业务类型" width="100">
-          <template #default="{ row }">{{ businessTypeLabel(row.businessType) }}</template>
+          <template #default="{ row }">
+            <el-tag :type="businessTypeTagType(row.businessType)" size="small" effect="light">{{ businessTypeLabel(row.businessType) }}</el-tag>
+          </template>
         </el-table-column>
         <el-table-column prop="orderCode" label="单据编号" width="160" show-overflow-tooltip />
         <el-table-column prop="assetName" label="资产名称" min-width="120" show-overflow-tooltip />
@@ -24,7 +26,9 @@
           <template #default="{ row }">{{ row.comment || '-' }}</template>
         </el-table-column>
         <el-table-column prop="approverName" label="审批人" width="100" />
-        <el-table-column prop="approvedAt" label="审批时间" width="160" />
+        <el-table-column prop="approvedAt" label="审批时间" width="160">
+          <template #default="{ row }">{{ row.approvedAt || '-' }}</template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="80">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
@@ -79,6 +83,17 @@ function businessTypeLabel(type: string): string {
     INBOUND: '入库'
   }
   return map[type] || type
+}
+
+function businessTypeTagType(type: string): 'info' | 'success' | 'warning' | 'danger' | '' {
+  const map: Record<string, 'info' | 'success' | 'warning' | 'danger' | ''> = {
+    INBOUND: 'info',
+    RECEIVE: 'success',
+    TRANSFER: 'warning',
+    REPAIR: 'danger',
+    SCRAP: ''
+  }
+  return map[type] || 'info'
 }
 
 function actionLabel(action: string): string {

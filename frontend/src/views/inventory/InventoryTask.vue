@@ -24,15 +24,26 @@
       <el-table-column label="范围描述" min-width="140">
         <template #default="{ row }">{{ scopeDescription(row) }}</template>
       </el-table-column>
-      <el-table-column label="状态" width="100">
+      <el-table-column label="状态" width="110">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'COMPLETED' ? 'success' : 'warning'">
+          <el-tag :type="row.status === 'COMPLETED' ? 'success' : 'warning'" effect="dark">
+            <el-icon style="margin-right:2px"><CircleCheck v-if="row.status === 'COMPLETED'" /><Loading v-else /></el-icon>
             {{ statusText(row.status) }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="进度" width="110">
-        <template #default="{ row }">{{ row.completedRecords }} / {{ row.totalRecords }}</template>
+      <el-table-column label="盘点进度" width="180">
+        <template #default="{ row }">
+          <div class="progress-cell">
+            <el-progress
+              :percentage="progressPercent(row)"
+              :status="row.status === 'COMPLETED' ? 'success' : ''"
+              :stroke-width="14"
+              :text-inside="true"
+            />
+            <span class="progress-text">{{ row.completedRecords }} / {{ row.totalRecords }}</span>
+          </div>
+        </template>
       </el-table-column>
       <el-table-column prop="startTime" label="开始时间" width="170" />
       <el-table-column prop="endTime" label="结束时间" width="170">
@@ -226,7 +237,7 @@ import {
   type InventoryTaskItem,
   type InventoryRecordItem
 } from '@/api/inventory'
-import { Download } from '@element-plus/icons-vue'
+import { Download, CircleCheck, Loading } from '@element-plus/icons-vue'
 import { exportInventoryTasks, exportInventoryTaskRecords } from '@/api/export'
 import { useMasterDataOptions } from '@/composables/useMasterDataOptions'
 
@@ -452,6 +463,11 @@ function statusText(status: string): string {
   return map[status] || status || '-'
 }
 
+function progressPercent(row: InventoryTaskItem): number {
+  if (!row.totalRecords || row.totalRecords === 0) return 0
+  return Math.round((row.completedRecords / row.totalRecords) * 100)
+}
+
 function resultText(result: string): string {
   const map: Record<string, string> = {
     NORMAL: '正常',
@@ -489,5 +505,18 @@ loadMasterData()
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
+}
+.progress-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.progress-cell .el-progress {
+  flex: 1;
+}
+.progress-text {
+  font-size: 11px;
+  color: var(--color-text-secondary, #909399);
+  text-align: right;
 }
 </style>

@@ -40,9 +40,9 @@
       </div>
 
       <el-table :data="tableData" border stripe v-loading="loading" max-height="600">
-        <el-table-column label="日志类型" width="110">
+        <el-table-column label="日志类型" width="120">
           <template #default="{ row }">
-            <el-tag :type="logTypeTagType(row.logType)" size="small">{{ row.logTypeName }}</el-tag>
+            <el-tag :type="logTypeTagType(row.logType)" size="small" effect="dark">{{ row.logTypeName }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="assetCode" label="资产编号" width="150" show-overflow-tooltip>
@@ -52,7 +52,10 @@
           <template #default="{ row }">{{ row.assetName ?? '-' }}</template>
         </el-table-column>
         <el-table-column prop="businessType" label="业务类型" width="110">
-          <template #default="{ row }">{{ row.businessType ?? '-' }}</template>
+          <template #default="{ row }">
+            <el-tag v-if="row.businessType" :type="businessTypeTagType(row.businessType)" size="small" effect="plain">{{ businessTypeLabel(row.businessType) }}</el-tag>
+            <span v-else>-</span>
+          </template>
         </el-table-column>
         <el-table-column prop="operation" label="操作" width="160" show-overflow-tooltip>
           <template #default="{ row }">{{ row.operation ?? '-' }}</template>
@@ -61,9 +64,17 @@
           <template #default="{ row }">{{ row.operatorName ?? '-' }}</template>
         </el-table-column>
         <el-table-column prop="operationTime" label="操作时间" width="170">
-          <template #default="{ row }">{{ row.operationTime ?? '-' }}</template>
+          <template #default="{ row }">
+            <span v-if="row.operationTime">{{ formatDateTime(row.operationTime) }}</span>
+            <span v-else>-</span>
+          </template>
         </el-table-column>
-        <el-table-column prop="source" label="来源" width="100" />
+        <el-table-column prop="source" label="来源模块" width="120">
+          <template #default="{ row }">
+            <el-tag v-if="row.source" type="info" size="small" effect="plain">{{ row.source }}</el-tag>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
             <el-button
@@ -253,6 +264,39 @@ function logTypeTagType(type: string): 'primary' | 'success' | 'warning' | 'dang
     FINANCE_SYNC: 'success'
   }
   return map[type] || 'info'
+}
+
+function businessTypeLabel(type: string): string {
+  const map: Record<string, string> = {
+    INBOUND: '入库',
+    RECEIVE: '领用',
+    TRANSFER: '调拨',
+    REPAIR: '维修',
+    SCRAP: '报废',
+    INVENTORY: '盘点',
+    FINANCE_SYNC: '财务同步'
+  }
+  return map[type] || type
+}
+
+function businessTypeTagType(type: string): 'info' | 'success' | 'warning' | 'danger' | '' {
+  const map: Record<string, 'info' | 'success' | 'warning' | 'danger' | ''> = {
+    INBOUND: 'info',
+    RECEIVE: 'success',
+    TRANSFER: 'warning',
+    REPAIR: 'danger',
+    SCRAP: '',
+    INVENTORY: 'warning',
+    FINANCE_SYNC: 'success'
+  }
+  return map[type] || 'info'
+}
+
+function formatDateTime(dt: string): string {
+  if (!dt) return '-'
+  // 已是 YYYY-MM-DD HH:mm:ss 格式则截断到分钟
+  if (dt.length >= 16) return dt.substring(0, 16)
+  return dt
 }
 
 onMounted(() => {

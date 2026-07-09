@@ -33,7 +33,15 @@
 
     <!-- 月度折旧趋势 -->
     <div style="background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:12px;margin-bottom:16px;">
-      <h3 style="font-size:14px;margin:0 0 8px;color:var(--color-text);">月度折旧趋势（近12个月）</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div>
+          <h3 style="font-size:15px;margin:0;color:var(--color-text);font-weight:600;">月度折旧趋势（近12个月）</h3>
+          <p style="font-size:12px;color:var(--color-text-secondary);margin:4px 0 0;">柱状图为各月折旧额，折线为累计折旧与资产净值，用于观察折旧变化趋势</p>
+        </div>
+        <el-tag v-if="trendData.length" type="info" size="small" effect="plain">
+          最大月折旧: {{ formatMoney(trendMaxMonthly) }} 元
+        </el-tag>
+      </div>
       <div v-if="trendData.length" style="height:360px;">
         <v-chart :option="trendChartOption" class="chart" autoresize style="height:100%;" />
       </div>
@@ -262,6 +270,10 @@ const catLoading = ref(false)
 
 // 趋势
 const trendData = ref<any[]>([])
+const trendMaxMonthly = computed(() => {
+  if (!trendData.value.length) return 0
+  return Math.max(...trendData.value.map((d: any) => Number(d.monthlyDepreciation) || 0))
+})
 
 // 低净值资产
 const lowValueAssets = ref<any[]>([])
@@ -393,20 +405,37 @@ const catChartOption = computed(() => ({
 
 // 月度趋势图
 const trendChartOption = computed(() => ({
-  tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
-  legend: { data: ['月折旧额', '累计折旧', '资产净值'], top: 10 },
-  grid: { left: 60, right: 40, top: 50, bottom: 30 },
+  tooltip: {
+    trigger: 'axis',
+    axisPointer: { type: 'cross' },
+    formatter: (params: any[]) => {
+      const month = params[0]?.axisValue || ''
+      let html = `<div style="font-weight:600;margin-bottom:4px">${month}</div>`
+      params.forEach(p => {
+        const val = Number(p.value) || 0
+        html += `<div style="display:flex;align-items:center;gap:6px;">
+          <span style="display:inline-block;width:8px;height:8px;background:${p.color};border-radius:50%;"></span>
+          <span style="flex:1">${p.seriesName}</span>
+          <span style="font-weight:600">${val.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 元</span>
+        </div>`
+      })
+      return html
+    }
+  },
+  legend: { data: ['月折旧额', '累计折旧', '资产净值'], top: 10, fontSize: 12 },
+  grid: { left: 70, right: 40, top: 50, bottom: 40 },
   xAxis: {
     type: 'category',
     data: trendData.value.map((d: any) => d.month),
-    axisLabel: { rotate: 30 }
+    axisLabel: { rotate: 30, fontSize: 11 }
   },
   yAxis: {
     type: 'value',
+    name: '金额(元)',
     axisLabel: { formatter: (v: number) => (v / 10000).toFixed(0) + '万' }
   },
   series: [
-    { name: '月折旧额', type: 'bar', data: trendData.value.map((d: any) => d.monthlyDepreciation), itemStyle: { color: '#D97706' } },
+    { name: '月折旧额', type: 'bar', data: trendData.value.map((d: any) => d.monthlyDepreciation), itemStyle: { color: '#D97706', borderRadius: [4, 4, 0, 0] }, barWidth: '45%' },
     { name: '累计折旧', type: 'line', data: trendData.value.map((d: any) => d.accumulatedDepreciation), smooth: true, itemStyle: { color: '#EA580C' }, lineStyle: { width: 2 } },
     { name: '资产净值', type: 'line', data: trendData.value.map((d: any) => d.netValue), smooth: true, itemStyle: { color: '#4F8F7B' }, lineStyle: { width: 2 }, areaStyle: { color: 'rgba(79,143,123,0.1)' } }
   ]

@@ -7,7 +7,16 @@
       <DataCard label="同步记录总数" :value="total" sub="条" />
       <DataCard label="最近同步月份" :value="latestRecord?.syncMonth ?? '-'" />
       <DataCard label="累计同步折旧" :value="formatMoney(totalSyncedDepreciation)" sub="元" />
-      <DataCard label="最近同步状态" :value="latestRecord?.status ?? '-'" />
+      <div class="status-card">
+        <div class="status-label">最近同步状态</div>
+        <div class="status-value">
+          <el-tag v-if="latestRecord?.status" :type="latestRecord.status === 'SUCCESS' ? 'success' : 'danger'" effect="dark" size="large">
+            <el-icon style="margin-right:4px"><CircleCheckFilled v-if="latestRecord.status === 'SUCCESS'" /><CircleCloseFilled v-else /></el-icon>
+            {{ latestRecord.status === 'SUCCESS' ? '同步成功' : '同步失败' }}
+          </el-tag>
+          <span v-else>-</span>
+        </div>
+      </div>
     </div>
 
     <!-- 操作区域 -->
@@ -33,8 +42,12 @@
     <!-- 同步记录表格 -->
     <div style="background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:12px;">
       <el-table :data="tableData" border stripe v-loading="loading">
-        <el-table-column prop="syncBatchNo" label="批次号" width="180" />
-        <el-table-column prop="syncMonth" label="同步月份" width="100" />
+        <el-table-column prop="syncBatchNo" label="批次号" width="180" show-overflow-tooltip />
+        <el-table-column prop="syncMonth" label="同步月份" width="110">
+          <template #default="{ row }">
+            <span style="font-weight:600;color:var(--color-text);">{{ row.syncMonth }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="assetCount" label="资产数量" width="90" align="center" />
         <el-table-column label="原值总额" width="130" align="right">
           <template #default="{ row }">{{ formatMoney(row.totalOriginalValue) }}</template>
@@ -50,9 +63,10 @@
             <span style="color:#D97706;font-weight:600;">{{ formatMoney(row.monthlyDepreciation) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="90">
+        <el-table-column label="状态" width="110">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'SUCCESS' ? 'success' : 'danger'" size="small">
+            <el-tag :type="row.status === 'SUCCESS' ? 'success' : 'danger'" effect="dark" size="small">
+              <el-icon style="margin-right:2px"><CircleCheckFilled v-if="row.status === 'SUCCESS'" /><CircleCloseFilled v-else /></el-icon>
               {{ row.status === 'SUCCESS' ? '成功' : '失败' }}
             </el-tag>
           </template>
@@ -119,7 +133,7 @@ import {
   getFinanceSyncDetail,
   type FinanceSyncRecordItem
 } from '@/api/finance'
-import { Download } from '@element-plus/icons-vue'
+import { Download, CircleCheckFilled, CircleCloseFilled } from '@element-plus/icons-vue'
 import { exportFinanceSyncRecords } from '@/api/export'
 
 const syncMonth = ref(getDefaultMonth())
@@ -210,3 +224,25 @@ onMounted(() => {
   fetchRecords()
 })
 </script>
+
+<style scoped>
+.status-card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+.status-label {
+  font-size: 13px;
+  color: var(--color-text-secondary, #909399);
+}
+.status-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text, #303133);
+}
+</style>

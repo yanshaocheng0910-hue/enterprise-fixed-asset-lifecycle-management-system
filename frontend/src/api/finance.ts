@@ -20,7 +20,7 @@ export function syncDepreciationData(month: string) {
 }
 
 export function getFinanceSyncRecords(params: { pageNum: number; pageSize: number }) {
-  return request.get('/finance/sync/records', { params })
+  return request.get<any, { code: number; message: string; data: { records: FinanceSyncRecordItem[]; total: number; pageNum: number; pageSize: number } }>('/finance/sync/records', { params })
 }
 
 export function getFinanceSyncDetail(id: number) {

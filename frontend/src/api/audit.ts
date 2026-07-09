@@ -39,11 +39,11 @@ export interface AuditLogQuery {
 }
 
 export function getAuditSummary() {
-  return request.get('/audit/logs/summary')
+  return request.get<any, { code: number; message: string; data: AuditSummary }>('/audit/logs/summary')
 }
 
 export function getAuditLogPage(params: AuditLogQuery) {
-  return request.get('/audit/logs/page', { params })
+  return request.get<any, { code: number; message: string; data: { records: AuditLog[]; total: number; pageNum: number; pageSize: number } }>('/audit/logs/page', { params })
 }
 
 export function getAuditLogDetail(id: string) {
