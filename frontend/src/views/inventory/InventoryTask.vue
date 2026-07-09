@@ -85,14 +85,18 @@
           prop="department"
           v-if="createForm.scopeType === 'DEPARTMENT'"
         >
-          <el-input v-model="createForm.department" placeholder="请输入部门名称" />
+          <el-select v-model="createForm.department" placeholder="请选择部门" filterable allow-create clearable style="width: 100%">
+            <el-option v-for="d in departmentOptions" :key="d.id" :label="d.label" :value="d.value" />
+          </el-select>
         </el-form-item>
         <el-form-item
           label="地点"
           prop="location"
           v-if="createForm.scopeType === 'LOCATION'"
         >
-          <el-input v-model="createForm.location" placeholder="请输入地点" />
+          <el-select v-model="createForm.location" placeholder="请选择地点" filterable allow-create clearable style="width: 100%">
+            <el-option v-for="l in locationOptions" :key="l.id" :label="l.label" :value="l.value" />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -179,10 +183,14 @@
           <span>{{ currentRecord?.expectedKeeper || '-' }}</span>
         </el-form-item>
         <el-form-item label="实际地点" prop="actualLocation">
-          <el-input v-model="recordForm.actualLocation" placeholder="请输入实际地点" />
+          <el-select v-model="recordForm.actualLocation" placeholder="请选择实际地点" filterable allow-create clearable style="width: 100%">
+            <el-option v-for="l in locationOptions" :key="l.id" :label="l.label" :value="l.value" />
+          </el-select>
         </el-form-item>
         <el-form-item label="实际保管人" prop="actualKeeper">
-          <el-input v-model="recordForm.actualKeeper" placeholder="请输入实际保管人" />
+          <el-select v-model="recordForm.actualKeeper" placeholder="请选择实际保管人" filterable allow-create clearable style="width: 100%">
+            <el-option v-for="k in keeperOptions" :key="k.id" :label="k.label" :value="k.value" />
+          </el-select>
         </el-form-item>
         <el-form-item label="盘点结果" prop="result">
           <el-select v-model="recordForm.result" placeholder="请选择盘点结果" style="width: 100%">
@@ -220,6 +228,9 @@ import {
 } from '@/api/inventory'
 import { Download } from '@element-plus/icons-vue'
 import { exportInventoryTasks, exportInventoryTaskRecords } from '@/api/export'
+import { useMasterDataOptions } from '@/composables/useMasterDataOptions'
+
+const { departmentOptions, locationOptions, keeperOptions, loadAll: loadMasterData } = useMasterDataOptions()
 
 // ===== 任务列表 =====
 const loading = ref(false)
@@ -465,6 +476,7 @@ function resultTagType(result: string): string {
 
 // 初始化加载
 loadTasks()
+loadMasterData()
 </script>
 
 <style scoped>

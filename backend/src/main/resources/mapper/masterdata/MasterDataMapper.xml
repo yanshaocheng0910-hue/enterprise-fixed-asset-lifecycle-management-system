@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.asset.masterdata.mapper.MasterDataMapper">
+
+    <!-- 部门列表 -->
+    <select id="selectDepartments" resultType="com.example.asset.masterdata.vo.MasterDataVO">
+        SELECT
+            id,
+            department_code AS code,
+            department_name AS name,
+            department_name AS label,
+            department_name AS value,
+            manager_name AS extraInfo
+        FROM base_department
+        WHERE status = 1
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <!-- 地点列表 -->
+    <select id="selectLocations" resultType="com.example.asset.masterdata.vo.MasterDataVO">
+        SELECT
+            id,
+            location_code AS code,
+            location_name AS name,
+            location_name AS label,
+            location_name AS value,
+            CONCAT_WS('-', building, floor_no, room_no) AS extraInfo
+        FROM base_location
+        WHERE status = 1
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <!-- 保管人列表：优先从 sys_user 读取启用用户，补充 asset 表中去重的保管人 -->
+    <select id="selectKeepers" resultType="com.example.asset.masterdata.vo.MasterDataVO">
+        SELECT id, code, name, label, value, extraInfo FROM (
+            SELECT
+                id,
+                username AS code,
+                real_name AS name,
+                real_name AS label,
+                real_name AS value,
+                department AS extraInfo
+            FROM sys_user
+            WHERE status = 1
+            UNION
+            SELECT
+                id,
+                CONCAT('KEEPER-', id) AS code,
+                keeper AS name,
+                keeper AS label,
+                keeper AS value,
+                NULL AS extraInfo
+            FROM asset
+            WHERE keeper IS NOT NULL AND keeper != '' AND deleted = 0
+            GROUP BY keeper
+        ) t
+        GROUP BY value
+        ORDER BY value ASC
+    </select>
+
+</mapper>

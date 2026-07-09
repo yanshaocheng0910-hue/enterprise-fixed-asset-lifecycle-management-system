@@ -60,12 +60,16 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="领用人" prop="receiver">
-              <el-input v-model="form.receiver" placeholder="领用人" />
+              <el-select v-model="form.receiver" placeholder="选择领用人" filterable allow-create clearable style="width:100%">
+                <el-option v-for="k in keeperOptions" :key="k.id" :label="k.label" :value="k.value" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="领用部门" prop="receiverDepartment">
-              <el-input v-model="form.receiverDepartment" placeholder="领用部门" />
+              <el-select v-model="form.receiverDepartment" placeholder="选择领用部门" filterable allow-create clearable style="width:100%">
+                <el-option v-for="d in departmentOptions" :key="d.id" :label="d.label" :value="d.value" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -102,6 +106,9 @@ import PageHeader from '@/components/PageHeader.vue'
 import AssetSelect from '@/components/AssetSelect.vue'
 import LifecycleDetailDialog from '@/components/LifecycleDetailDialog.vue'
 import { getReceivePage, getReceiveDetail, createReceive } from '@/api/lifecycle'
+import { useMasterDataOptions } from '@/composables/useMasterDataOptions'
+
+const { departmentOptions, keeperOptions, loadAll: loadMasterData } = useMasterDataOptions()
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -186,7 +193,7 @@ async function viewDetail(row: any) {
   } catch {}
 }
 
-onMounted(() => { fetchData() })
+onMounted(() => { fetchData(); loadMasterData() })
 </script>
 
 <style scoped>

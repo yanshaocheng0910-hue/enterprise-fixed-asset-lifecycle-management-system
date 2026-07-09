@@ -12,9 +12,21 @@
             <el-option v-for="c in categories" :key="c.id" :label="c.categoryName" :value="c.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="所属部门"><el-input v-model="query.department" placeholder="部门" clearable style="width:130px" /></el-form-item>
-        <el-form-item label="使用人"><el-input v-model="query.keeper" placeholder="使用人" clearable style="width:130px" /></el-form-item>
-        <el-form-item label="存放地点"><el-input v-model="query.location" placeholder="地点" clearable style="width:130px" /></el-form-item>
+        <el-form-item label="所属部门">
+          <el-select v-model="query.department" placeholder="部门" clearable filterable style="width:130px">
+            <el-option v-for="d in departmentOptions" :key="d.id" :label="d.label" :value="d.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="使用人">
+          <el-select v-model="query.keeper" placeholder="使用人" clearable filterable style="width:130px">
+            <el-option v-for="k in keeperOptions" :key="k.id" :label="k.label" :value="k.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="存放地点">
+          <el-select v-model="query.location" placeholder="地点" clearable filterable style="width:130px">
+            <el-option v-for="l in locationOptions" :key="l.id" :label="l.label" :value="l.value" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="资产状态">
           <el-select v-model="query.status" placeholder="选择状态" clearable style="width:140px">
             <el-option v-for="s in statusOptions" :key="s.code" :label="s.label" :value="s.code" />
@@ -126,18 +138,26 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="所属部门" prop="department">
-              <el-input v-model="form.department" placeholder="所属部门" />
+              <el-select v-model="form.department" placeholder="选择部门" filterable allow-create clearable style="width:100%">
+                <el-option v-for="d in departmentOptions" :key="d.id" :label="d.label" :value="d.value" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="使用人" prop="keeper">
-              <el-input v-model="form.keeper" placeholder="使用人/保管人" />
+              <el-select v-model="form.keeper" placeholder="选择使用人" filterable allow-create clearable style="width:100%">
+                <el-option v-for="k in keeperOptions" :key="k.id" :label="k.label" :value="k.value" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="存放地点"><el-input v-model="form.location" placeholder="存放地点" /></el-form-item>
+            <el-form-item label="存放地点">
+              <el-select v-model="form.location" placeholder="选择存放地点" filterable allow-create clearable style="width:100%">
+                <el-option v-for="l in locationOptions" :key="l.id" :label="l.label" :value="l.value" />
+              </el-select>
+            </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item v-if="isEdit" label="资产状态" prop="status">
@@ -172,6 +192,9 @@ import { getAssetPage, createAsset, updateAsset, deleteAsset, getStatusOptions, 
 import { Download } from '@element-plus/icons-vue'
 import { exportAssets } from '@/api/export'
 import { formatMoney } from '@/utils/format'
+import { useMasterDataOptions } from '@/composables/useMasterDataOptions'
+
+const { departmentOptions, locationOptions, keeperOptions, loadAll: loadMasterData } = useMasterDataOptions()
 
 const router = useRouter()
 const loading = ref(false)
@@ -345,7 +368,7 @@ function handleDelete(row: any) {
 
 function goDetail(id: number) { router.push(`/assets/${id}`) }
 
-onMounted(() => { fetchData(); fetchOptions() })
+onMounted(() => { fetchData(); fetchOptions(); loadMasterData() })
 </script>
 
 <style scoped>

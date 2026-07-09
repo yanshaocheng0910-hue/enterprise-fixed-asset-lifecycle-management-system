@@ -61,17 +61,25 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="调入部门" prop="toDepartment">
-              <el-input v-model="form.toDepartment" placeholder="调入部门" />
+              <el-select v-model="form.toDepartment" placeholder="选择调入部门" filterable allow-create clearable style="width:100%">
+                <el-option v-for="d in departmentOptions" :key="d.id" :label="d.label" :value="d.value" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="存放地点"><el-input v-model="form.toLocation" placeholder="存放地点" /></el-form-item>
+            <el-form-item label="存放地点">
+              <el-select v-model="form.toLocation" placeholder="选择存放地点" filterable allow-create clearable style="width:100%">
+                <el-option v-for="l in locationOptions" :key="l.id" :label="l.label" :value="l.value" />
+              </el-select>
+            </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="调入保管人" prop="toKeeper">
-              <el-input v-model="form.toKeeper" placeholder="调入保管人" />
+              <el-select v-model="form.toKeeper" placeholder="选择调入保管人" filterable allow-create clearable style="width:100%">
+                <el-option v-for="k in keeperOptions" :key="k.id" :label="k.label" :value="k.value" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -103,6 +111,9 @@ import PageHeader from '@/components/PageHeader.vue'
 import AssetSelect from '@/components/AssetSelect.vue'
 import LifecycleDetailDialog from '@/components/LifecycleDetailDialog.vue'
 import { getTransferPage, getTransferDetail, createTransfer } from '@/api/lifecycle'
+import { useMasterDataOptions } from '@/composables/useMasterDataOptions'
+
+const { departmentOptions, locationOptions, keeperOptions, loadAll: loadMasterData } = useMasterDataOptions()
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -187,7 +198,7 @@ async function viewDetail(row: any) {
   } catch {}
 }
 
-onMounted(() => { fetchData() })
+onMounted(() => { fetchData(); loadMasterData() })
 </script>
 
 <style scoped>
