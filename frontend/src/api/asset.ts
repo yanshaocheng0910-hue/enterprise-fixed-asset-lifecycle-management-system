@@ -32,3 +32,28 @@ export function getCategoryList() {
 export function getCategoryTree() {
   return request.get<any, { code: number; message: string; data: AssetCategoryTree[] }>('/asset-categories/tree')
 }
+
+export interface AssetTimelineEvent {
+  id: string
+  assetId: number | null
+  eventType: string
+  eventTypeName: string
+  title: string
+  description: string
+  orderCode: string | null
+  businessType: string | null
+  businessId: number | null
+  status: string | null
+  beforeStatus: string | null
+  afterStatus: string | null
+  operatorName: string | null
+  eventTime: string
+  source: string
+  remark: string | null
+}
+
+export function getAssetTimeline(assetId: number, params?: { eventType?: string }) {
+  return request.get<any, { code: number; message: string; data: AssetTimelineEvent[] }>(
+    `/assets/${assetId}/timeline`, { params }
+  )
+}
