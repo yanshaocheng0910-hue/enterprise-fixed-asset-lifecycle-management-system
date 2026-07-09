@@ -9,6 +9,9 @@
         <el-option label="已完成" value="COMPLETED" />
       </el-select>
       <el-button type="primary" @click="openCreateDialog">新建盘点任务</el-button>
+      <el-button type="success" :loading="exporting" @click="handleExportTasks">
+        <el-icon><Download /></el-icon>导出任务列表
+      </el-button>
     </div>
 
     <!-- 任务列表 -->
@@ -148,6 +151,9 @@
       </el-table>
 
       <template #footer>
+        <el-button size="small" type="success" :loading="exporting" @click="handleExportRecords">
+          <el-icon><Download /></el-icon>导出明细
+        </el-button>
         <el-button @click="recordsDialogVisible = false">关闭</el-button>
         <el-button
           type="success"
@@ -212,9 +218,12 @@ import {
   type InventoryTaskItem,
   type InventoryRecordItem
 } from '@/api/inventory'
+import { Download } from '@element-plus/icons-vue'
+import { exportInventoryTasks, exportInventoryTaskRecords } from '@/api/export'
 
 // ===== 任务列表 =====
 const loading = ref(false)
+const exporting = ref(false)
 const taskList = ref<InventoryTaskItem[]>([])
 const total = ref(0)
 const pageNum = ref(1)
@@ -236,6 +245,27 @@ async function loadTasks() {
     ElMessage.error(e?.message || '加载任务列表失败')
   } finally {
     loading.value = false
+  }
+}
+
+async function handleExportTasks() {
+  exporting.value = true
+  try {
+    await exportInventoryTasks()
+    ElMessage.success('导出成功')
+  } finally {
+    exporting.value = false
+  }
+}
+
+async function handleExportRecords() {
+  if (!currentTask.value) return
+  exporting.value = true
+  try {
+    await exportInventoryTaskRecords(currentTask.value.id)
+    ElMessage.success('导出成功')
+  } finally {
+    exporting.value = false
   }
 }
 

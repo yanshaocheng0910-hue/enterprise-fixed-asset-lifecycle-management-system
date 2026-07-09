@@ -54,6 +54,9 @@
             value-format="YYYY-MM"
             @change="fetchMonthlyData"
           />
+          <el-button type="success" :loading="exporting" @click="handleExport">
+            <el-icon><Download /></el-icon>导出报表
+          </el-button>
         </div>
         <el-table :data="monthlyItems" border stripe v-loading="monthlyLoading" max-height="500">
           <el-table-column prop="assetCode" label="资产编号" width="140" fixed />
@@ -232,11 +235,15 @@ import {
   getNearEndAssets
 } from '@/api/depreciation'
 import { formatMoney } from '@/utils/format'
+import { Download } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { exportDepreciationReport } from '@/api/export'
 
 use([CanvasRenderer, LineChart, BarChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
 const activeTab = ref('monthly')
 const currentMonth = ref(getDefaultMonth())
+const exporting = ref(false)
 
 // 折旧总览
 const summary = ref<any>({})
@@ -284,6 +291,16 @@ async function fetchMonthlyData() {
     monthlyItems.value = itemsRes.data || []
   } finally {
     monthlyLoading.value = false
+  }
+}
+
+async function handleExport() {
+  exporting.value = true
+  try {
+    await exportDepreciationReport(currentMonth.value)
+    ElMessage.success('导出成功')
+  } finally {
+    exporting.value = false
   }
 }
 

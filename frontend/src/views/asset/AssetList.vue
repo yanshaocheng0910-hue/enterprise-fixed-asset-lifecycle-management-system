@@ -27,6 +27,9 @@
           <el-button type="primary" @click="search">查询</el-button>
           <el-button @click="resetQuery">重置</el-button>
           <el-button type="primary" @click="openCreate">新增资产</el-button>
+          <el-button type="success" :loading="exporting" @click="handleExport">
+            <el-icon><Download /></el-icon>导出 Excel
+          </el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -166,11 +169,14 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import AssetStatusTag from '@/components/AssetStatusTag.vue'
 import { getAssetPage, createAsset, updateAsset, deleteAsset, getStatusOptions, getCategoryList } from '@/api/asset'
+import { Download } from '@element-plus/icons-vue'
+import { exportAssets } from '@/api/export'
 import { formatMoney } from '@/utils/format'
 
 const router = useRouter()
 const loading = ref(false)
 const submitLoading = ref(false)
+const exporting = ref(false)
 const tableData = ref<any[]>([])
 const total = ref(0)
 const pageNum = ref(1)
@@ -246,6 +252,16 @@ async function fetchData() {
     }
   } catch {} finally {
     loading.value = false
+  }
+}
+
+async function handleExport() {
+  exporting.value = true
+  try {
+    await exportAssets({ status: query.status, department: query.department, keyword: query.assetName })
+    ElMessage.success('导出成功')
+  } finally {
+    exporting.value = false
   }
 }
 

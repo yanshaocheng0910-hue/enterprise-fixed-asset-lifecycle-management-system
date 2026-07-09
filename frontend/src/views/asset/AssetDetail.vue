@@ -26,6 +26,11 @@
           <el-button @click="goBack">返回</el-button>
         </div>
       </div>
+      <div v-if="asset" style="display:flex;justify-content:flex-end;margin-top:16px;">
+        <el-button size="small" type="success" :loading="exporting" @click="handleExportTimeline">
+          <el-icon><Download /></el-icon>导出时间线
+        </el-button>
+      </div>
       <AssetTimeline v-if="asset" :asset-id="Number(route.params.id)" />
     </div>
   </div>
@@ -39,12 +44,15 @@ import PageHeader from '@/components/PageHeader.vue'
 import AssetStatusTag from '@/components/AssetStatusTag.vue'
 import AssetTimeline from './components/AssetTimeline.vue'
 import { getAssetDetail } from '@/api/asset'
+import { Download } from '@element-plus/icons-vue'
+import { exportAssetTimeline } from '@/api/export'
 import { formatMoney, formatDate } from '@/utils/format'
 
 const route = useRoute()
 const router = useRouter()
 const asset = ref<any>(null)
 const loading = ref(true)
+const exporting = ref(false)
 
 async function fetchDetail() {
   try {
@@ -55,6 +63,16 @@ async function fetchDetail() {
 }
 
 function goBack() { router.push('/assets') }
+
+async function handleExportTimeline() {
+  exporting.value = true
+  try {
+    await exportAssetTimeline(Number(route.params.id))
+    ElMessage.success('导出成功')
+  } finally {
+    exporting.value = false
+  }
+}
 
 onMounted(() => fetchDetail())
 </script>

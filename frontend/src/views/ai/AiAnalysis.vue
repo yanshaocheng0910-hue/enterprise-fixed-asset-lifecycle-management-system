@@ -116,6 +116,9 @@
         <h3 class="ai-card-title">管理报告辅助生成</h3>
         <p class="ai-card-desc">基于系统内部数据，辅助生成资产管理报告内容，包括资产总体情况、异常资产分析、维修/报废建议等，供管理人员参考。</p>
         <el-button :loading="reportLoading" size="small" style="margin-top:12px;" @click="loadReport">生成报告</el-button>
+        <el-button type="success" :loading="exporting" size="small" style="margin-top:12px;" @click="handleExport">
+          <el-icon><Download /></el-icon>导出报告
+        </el-button>
         <p v-if="reportNote" class="ai-card-note">辅助参考</p>
         <div v-if="reportData" style="margin-top:12px;text-align:left;">
           <div style="background:#f5f7fa;border-radius:4px;padding:12px;font-size:13px;line-height:1.8;color:#303133;">
@@ -131,10 +134,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { DataAnalysis, Warning, Tools, Document } from '@element-plus/icons-vue'
+import { DataAnalysis, Warning, Tools, Document, Download } from '@element-plus/icons-vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { getAiSummary, getAiAlerts, getAiSuggestions, getAiReport } from '@/api/ai'
 import type { SummaryData, AlertsData, SuggestionsData, ReportData } from '@/api/ai'
+import { exportAiReport } from '@/api/export'
 import { ElMessage } from 'element-plus'
 
 const summaryLoading = ref(false)
@@ -152,6 +156,7 @@ const suggestionsNote = ref(false)
 const reportLoading = ref(false)
 const reportData = ref<ReportData | null>(null)
 const reportNote = ref(false)
+const exporting = ref(false)
 
 async function loadSummary() {
   summaryLoading.value = true
@@ -206,6 +211,16 @@ async function loadReport() {
     ElMessage.error('生成管理报告失败')
   } finally {
     reportLoading.value = false
+  }
+}
+
+async function handleExport() {
+  exporting.value = true
+  try {
+    await exportAiReport()
+    ElMessage.success('导出成功')
+  } finally {
+    exporting.value = false
   }
 }
 </script>

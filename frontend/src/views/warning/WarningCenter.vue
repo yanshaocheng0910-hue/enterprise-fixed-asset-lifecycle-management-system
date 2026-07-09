@@ -35,6 +35,9 @@
         </el-select>
         <el-button @click="handleReset">重置</el-button>
         <el-button type="primary" @click="fetchData">刷新</el-button>
+        <el-button type="success" :loading="exporting" @click="handleExport">
+          <el-icon><Download /></el-icon>导出预警
+        </el-button>
       </div>
 
       <el-table :data="tableData" border stripe v-loading="loading" max-height="600">
@@ -92,6 +95,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import DataCard from '@/components/DataCard.vue'
 import {
@@ -100,12 +104,15 @@ import {
   type WarningSummary,
   type WarningItem
 } from '@/api/warning'
+import { Download } from '@element-plus/icons-vue'
+import { exportWarnings } from '@/api/export'
 
 const router = useRouter()
 
 const summary = ref<Partial<WarningSummary>>({})
 const tableData = ref<WarningItem[]>([])
 const loading = ref(false)
+const exporting = ref(false)
 const pageNum = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
@@ -165,6 +172,16 @@ function handleReset() {
   filterLevel.value = undefined
   pageNum.value = 1
   fetchItems()
+}
+
+async function handleExport() {
+  exporting.value = true
+  try {
+    await exportWarnings({ type: filterType.value, level: filterLevel.value })
+    ElMessage.success('导出成功')
+  } finally {
+    exporting.value = false
+  }
 }
 
 function handleViewAsset(row: WarningItem) {

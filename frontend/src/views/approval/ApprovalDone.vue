@@ -2,6 +2,12 @@
   <div>
     <PageHeader title="我的已办" description="查看已处理的审批记录。" />
 
+    <div style="margin-bottom:12px;">
+      <el-button type="success" :loading="exporting" @click="handleExport">
+        <el-icon><Download /></el-icon>导出审批记录
+      </el-button>
+    </div>
+
     <div class="table-wrapper">
       <el-table :data="tableData" border stripe v-loading="loading" style="width:100%">
         <el-table-column prop="businessType" label="业务类型" width="100">
@@ -47,11 +53,15 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import ApprovalDetailDialog from '@/components/approval/ApprovalDetailDialog.vue'
 import { getApprovalDonePage, type ApprovalDoneItem } from '@/api/approval'
+import { Download } from '@element-plus/icons-vue'
+import { exportApprovalRecords } from '@/api/export'
 
 const loading = ref(false)
+const exporting = ref(false)
 const tableData = ref<ApprovalDoneItem[]>([])
 const total = ref(0)
 const pageNum = ref(1)
@@ -122,6 +132,16 @@ async function fetchData() {
     tableData.value = []
   } finally {
     loading.value = false
+  }
+}
+
+async function handleExport() {
+  exporting.value = true
+  try {
+    await exportApprovalRecords()
+    ElMessage.success('导出成功')
+  } finally {
+    exporting.value = false
   }
 }
 

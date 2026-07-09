@@ -24,6 +24,9 @@
           :disabled-date="disabledDate"
         />
         <el-button type="primary" :loading="syncing" @click="handleSync">模拟同步折旧数据</el-button>
+        <el-button type="success" :loading="exporting" @click="handleExport">
+          <el-icon><Download /></el-icon>导出记录
+        </el-button>
       </div>
     </div>
 
@@ -116,9 +119,12 @@ import {
   getFinanceSyncDetail,
   type FinanceSyncRecordItem
 } from '@/api/finance'
+import { Download } from '@element-plus/icons-vue'
+import { exportFinanceSyncRecords } from '@/api/export'
 
 const syncMonth = ref(getDefaultMonth())
 const syncing = ref(false)
+const exporting = ref(false)
 const loading = ref(false)
 const tableData = ref<FinanceSyncRecordItem[]>([])
 const pageNum = ref(1)
@@ -177,6 +183,16 @@ async function handleSync() {
     // 错误已在 request 拦截器中处理
   } finally {
     syncing.value = false
+  }
+}
+
+async function handleExport() {
+  exporting.value = true
+  try {
+    await exportFinanceSyncRecords()
+    ElMessage.success('导出成功')
+  } finally {
+    exporting.value = false
   }
 }
 
