@@ -109,23 +109,119 @@
         </div>
       </div>
 
-      <div class="ai-card">
-        <div class="ai-card-icon">
-          <el-icon :size="36" color="#6366F1"><Document /></el-icon>
-        </div>
-        <h3 class="ai-card-title">管理报告辅助生成</h3>
-        <p class="ai-card-desc">基于系统内部数据，辅助生成资产管理报告内容，包括资产总体情况、异常资产分析、维修/报废建议等，供管理人员参考。</p>
-        <el-button :loading="reportLoading" size="small" style="margin-top:12px;" @click="loadReport">生成报告</el-button>
-        <el-button type="success" :loading="exporting" size="small" style="margin-top:12px;" @click="handleExport">
-          <el-icon><Download /></el-icon>导出报告
-        </el-button>
-        <p v-if="reportNote" class="ai-card-note">辅助参考</p>
-        <div v-if="reportData" style="margin-top:12px;text-align:left;">
-          <div style="background:#f5f7fa;border-radius:4px;padding:12px;font-size:13px;line-height:1.8;color:#303133;">
-            <p>{{ reportData.summary }}</p>
-            <p>{{ reportData.anomalyOverview }}</p>
-            <p>{{ reportData.suggestionOverview }}</p>
+    </div>
+
+    <!-- 管理报告辅助生成（重做） -->
+    <div class="report-section">
+      <div class="report-header">
+        <div class="report-header-left">
+          <h3 class="report-title">
+            <el-icon :size="22" color="#1F4E79"><Document /></el-icon>
+            AI 智能分析报告
+          </h3>
+          <div v-if="reportData" class="report-meta">
+            <el-tag v-if="reportData.analysisMode === 'DEEPSEEK'" type="success" size="small" effect="light">DeepSeek 大模型分析</el-tag>
+            <el-tag v-else type="warning" size="small" effect="light">规则引擎分析</el-tag>
+            <span v-if="reportData.model" class="report-meta-item">模型：{{ reportData.model }}</span>
+            <span v-if="reportData.generatedAt" class="report-meta-item">生成时间：{{ reportData.generatedAt }}</span>
           </div>
+        </div>
+        <div v-if="reportData" class="report-header-actions">
+          <el-button type="primary" :loading="reportLoading" @click="loadReport">
+            <el-icon><Refresh /></el-icon>重新生成报告
+          </el-button>
+          <el-button type="success" :loading="exporting" @click="handleExport">
+            <el-icon><Download /></el-icon>导出报告
+          </el-button>
+        </div>
+      </div>
+
+      <el-alert
+        v-if="reportData && reportData.analysisMode === 'DEEPSEEK'"
+        type="info"
+        show-icon
+        :closable="false"
+        title="本报告由 DeepSeek 大模型基于系统数据生成，仅供辅助决策"
+        style="margin-top:16px;"
+      />
+      <el-alert
+        v-else-if="reportData && reportData.analysisMode === 'RULE_FALLBACK'"
+        type="warning"
+        show-icon
+        :closable="false"
+        :title="reportData.fallbackReason || '当前未配置 DeepSeek API Key 或模型调用失败，系统已切换为规则引擎分析模式'"
+        style="margin-top:16px;"
+      />
+
+      <!-- 空状态 / 首次加载 -->
+      <div v-if="!reportData" v-loading="reportLoading" class="report-empty">
+        <el-icon :size="48" color="#C0C4CC"><Document /></el-icon>
+        <p class="report-empty-text">点击下方按钮生成 AI 智能分析报告</p>
+        <el-button type="primary" :loading="reportLoading" @click="loadReport">
+          <el-icon><Document /></el-icon>生成报告
+        </el-button>
+      </div>
+
+      <!-- 报告内容 -->
+      <div v-if="reportData" v-loading="reportLoading" class="report-content">
+        <div v-if="reportData.summary" class="report-block">
+          <div class="report-block-head">
+            <el-icon :size="18" color="#1F4E79"><DataAnalysis /></el-icon>
+            <span class="report-block-title">资产总体状态摘要</span>
+          </div>
+          <div class="report-block-body">{{ reportData.summary }}</div>
+        </div>
+
+        <div v-if="reportData.keyRisks" class="report-block">
+          <div class="report-block-head">
+            <el-icon :size="18" color="#D97706"><Warning /></el-icon>
+            <span class="report-block-title">主要风险分析</span>
+          </div>
+          <div class="report-block-body">{{ reportData.keyRisks }}</div>
+        </div>
+
+        <div v-if="reportData.financialInsight" class="report-block">
+          <div class="report-block-head">
+            <el-icon :size="18" color="#4F8F7B"><Coin /></el-icon>
+            <span class="report-block-title">财务与折旧分析</span>
+          </div>
+          <div class="report-block-body">{{ reportData.financialInsight }}</div>
+        </div>
+
+        <div v-if="reportData.operationInsight" class="report-block">
+          <div class="report-block-head">
+            <el-icon :size="18" color="#409EFF"><Operation /></el-icon>
+            <span class="report-block-title">运营管理建议</span>
+          </div>
+          <div class="report-block-body">{{ reportData.operationInsight }}</div>
+        </div>
+
+        <div v-if="reportData.auditFocus" class="report-block">
+          <div class="report-block-head">
+            <el-icon :size="18" color="#6366F1"><View /></el-icon>
+            <span class="report-block-title">审计关注点</span>
+          </div>
+          <div class="report-block-body">{{ reportData.auditFocus }}</div>
+        </div>
+
+        <div v-if="reportData.recommendations && reportData.recommendations.length" class="report-block">
+          <div class="report-block-head">
+            <el-icon :size="18" color="#1F4E79"><List /></el-icon>
+            <span class="report-block-title">下一步处置建议</span>
+          </div>
+          <div class="report-block-body">
+            <ol class="report-recommendations">
+              <li v-for="(item, idx) in reportData.recommendations" :key="idx">{{ item }}</li>
+            </ol>
+          </div>
+        </div>
+
+        <div v-if="reportData.conclusion" class="report-block report-block-full">
+          <div class="report-block-head">
+            <el-icon :size="18" color="#67C23A"><Finished /></el-icon>
+            <span class="report-block-title">管理结论</span>
+          </div>
+          <div class="report-block-body">{{ reportData.conclusion }}</div>
         </div>
       </div>
     </div>
@@ -134,7 +230,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { DataAnalysis, Warning, Tools, Document, Download } from '@element-plus/icons-vue'
+import { DataAnalysis, Warning, Tools, Document, Download, Refresh, Coin, Operation, View, List, Finished } from '@element-plus/icons-vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { getAiSummary, getAiAlerts, getAiSuggestions, getAiReport } from '@/api/ai'
 import type { SummaryData, AlertsData, SuggestionsData, ReportData } from '@/api/ai'
@@ -155,7 +251,6 @@ const suggestionsNote = ref(false)
 
 const reportLoading = ref(false)
 const reportData = ref<ReportData | null>(null)
-const reportNote = ref(false)
 const exporting = ref(false)
 
 async function loadSummary() {
@@ -202,11 +297,9 @@ async function loadSuggestions() {
 
 async function loadReport() {
   reportLoading.value = true
-  reportNote.value = false
   try {
     const res = await getAiReport()
     reportData.value = res.data
-    reportNote.value = true
   } catch {
     ElMessage.error('生成管理报告失败')
   } finally {
@@ -249,5 +342,110 @@ async function handleExport() {
   font-size: 12px;
   color: #9CA3AF;
   margin-top: 8px;
+}
+
+/* 报告区域 */
+.report-section {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 24px;
+  margin-top: 16px;
+}
+.report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.report-header-left {
+  flex: 1;
+  min-width: 0;
+}
+.report-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1F4E79;
+  margin: 0;
+}
+.report-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.report-meta-item {
+  display: inline-flex;
+  align-items: center;
+}
+.report-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.report-empty {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+}
+.report-empty-text {
+  margin: 12px 0 16px;
+  font-size: 14px;
+}
+.report-content {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+  min-height: 80px;
+}
+.report-block {
+  background: #f7f9fb;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 16px;
+}
+.report-block-full {
+  grid-column: 1 / -1;
+}
+.report-block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--color-border);
+}
+.report-block-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1F4E79;
+}
+.report-block-body {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #303133;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.report-recommendations {
+  margin: 0;
+  padding-left: 20px;
+}
+.report-recommendations li {
+  margin-bottom: 6px;
+  line-height: 1.7;
 }
 </style>

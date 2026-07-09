@@ -27,3 +27,12 @@ asset:
   jwt:
     secret: fixed-asset-lifecycle-system-jwt-secret-key-2026-asset-platform
     expiration-minutes: 720
+
+ai:
+  enabled: ${AI_ENABLED:true}
+  provider: deepseek
+  api-base-url: ${DEEPSEEK_API_BASE_URL:https://api.deepseek.com}
+  api-key: ${DEEPSEEK_API_KEY:}
+  model: ${DEEPSEEK_MODEL:deepseek-v4-flash}
+  timeout-seconds: 30
+  fallback-enabled: true
