@@ -100,13 +100,13 @@ const router = createRouter({
           path: 'finance/sync',
           name: 'FinanceSync',
           component: () => import('@/views/finance/FinanceSync.vue'),
-          meta: { title: '财务同步', permission: 'finance:view' }
+          meta: { title: '财务数据模拟同步', permission: 'finance:view' }
         },
         {
           path: 'ai/analysis',
           name: 'AiAnalysis',
           component: () => import('@/views/ai/AiAnalysis.vue'),
-          meta: { title: 'AI 智能分析', permission: 'ai:view' }
+          meta: { title: 'AI 辅助分析', permission: 'ai:view' }
         },
         {
           path: 'system/users',

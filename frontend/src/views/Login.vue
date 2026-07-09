@@ -8,7 +8,7 @@
           <div class="feature-item">▶ 资产台账管理</div>
           <div class="feature-item">▶ 全生命周期流转</div>
           <div class="feature-item">▶ 折旧计提与报表</div>
-          <div class="feature-item">▶ 扫码盘点与异常追踪</div>
+          <div class="feature-item">▶ 资产台账与生命周期管理</div>
         </div>
       </div>
     </div>

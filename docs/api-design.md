@@ -4,8 +4,8 @@
 
 ### 1.1 基础URL
 
-- 开发环境：`http://localhost:8080`
-- 前端代理：`/api` → `http://localhost:8080`
+- 开发环境：`http://localhost:8081`
+- 前端代理：`/api` → `http://localhost:8081`
 
 ### 1.2 统一返回格式
 

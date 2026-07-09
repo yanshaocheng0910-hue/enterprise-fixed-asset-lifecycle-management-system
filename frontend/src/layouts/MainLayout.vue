@@ -44,11 +44,11 @@
         </el-menu-item>
         <el-menu-item index="/finance/sync" v-if="authStore.hasPermission('finance:view')">
           <el-icon><Connection /></el-icon>
-          <span>财务对接</span>
+          <span>财务数据</span>
         </el-menu-item>
         <el-menu-item index="/ai/analysis" v-if="authStore.hasPermission('ai:view')">
           <el-icon><Cpu /></el-icon>
-          <span>AI 智能分析</span>
+          <span>AI 辅助分析</span>
         </el-menu-item>
         <el-sub-menu index="system" v-if="authStore.hasPermission('user:view') || authStore.hasPermission('role:view')">
           <template #title>

@@ -19,8 +19,6 @@
         <el-descriptions-item label="使用人" :span="1">{{ asset.keeper || '-' }}</el-descriptions-item>
         <el-descriptions-item label="存放地点" :span="1">{{ asset.location || '-' }}</el-descriptions-item>
         <el-descriptions-item label="资产状态" :span="1"><AssetStatusTag :status="asset.status" /></el-descriptions-item>
-        <el-descriptions-item label="二维码" :span="1">{{ asset.qrCode || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="RFID" v-if="asset.rfidCode" :span="1">{{ asset.rfidCode }}</el-descriptions-item>
         <el-descriptions-item label="备注" :span="2">{{ asset.remark || '-' }}</el-descriptions-item>
       </el-descriptions>
       <div style="margin-top:16px;">

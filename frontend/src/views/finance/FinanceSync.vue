@@ -1,8 +1,8 @@
 <template>
   <div>
-    <PageHeader title="财务同步" description="将资产折旧数据同步至财务系统（现阶段为模拟对接，暂不接入真实用友/金蝶/SAP）。" />
+    <PageHeader title="财务数据模拟同步" description="网页端财务数据查看与模拟同步记录，用于演示资产折旧和财务数据流转。" />
     <div style="background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:20px;">
-      <el-alert title="当前为模拟对接状态" type="info" show-icon :closable="false" description="本模块将在第三阶段接入真实财务系统对接能力。" style="margin-bottom:16px;" />
+      <el-alert title="模拟同步说明" type="info" show-icon :closable="false" description="本模块为网页端模拟同步记录，用于演示资产折旧数据流转。" style="margin-bottom:16px;" />
 
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
         <span style="font-size:14px;color:var(--color-text-secondary);">同步月份：</span>

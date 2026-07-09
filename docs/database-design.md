@@ -116,8 +116,6 @@
 | keeper | VARCHAR(64) | DEFAULT NULL | 保管人/使用人 |
 | location | VARCHAR(255) | DEFAULT NULL | 存放地点 |
 | status | VARCHAR(32) | NOT NULL | 资产状态 |
-| qr_code | VARCHAR(128) | DEFAULT NULL | 二维码编码 |
-| rfid_code | VARCHAR(128) | DEFAULT NULL | RFID编码 |
 | photo_url | VARCHAR(255) | DEFAULT NULL | 图片地址 |
 | remark | VARCHAR(500) | DEFAULT NULL | 备注 |
 | created_at | DATETIME | DEFAULT CURRENT_TIMESTAMP | 创建时间 |
@@ -201,7 +199,6 @@
 | expected_keeper | VARCHAR(64) | DEFAULT NULL | 应在保管人 |
 | actual_keeper | VARCHAR(64) | DEFAULT NULL | 实际保管人 |
 | result | VARCHAR(32) | DEFAULT NULL | 盘点结果 |
-| scanned_at | DATETIME | DEFAULT NULL | 扫码时间 |
 | remark | VARCHAR(500) | DEFAULT NULL | 备注 |
 
 ## 4. 核心业务规则

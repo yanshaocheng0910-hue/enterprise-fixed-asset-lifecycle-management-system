@@ -1,32 +1,49 @@
 <template>
   <div>
-    <PageHeader title="AI 智能分析" description="利用人工智能技术辅助资产管理，提升资产分类、故障预测和盘点效率。" />
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+    <PageHeader title="AI 辅助分析" description="基于资产台账、生命周期单据和操作日志生成管理建议，辅助资产决策。" />
+    <el-alert
+      title="AI 辅助分析说明"
+      type="info"
+      show-icon
+      :closable="false"
+      description="本模块基于系统内部资产数据、生命周期单据、维修记录、报废记录和操作日志进行分析，生成资产状态摘要、异常资产提示、维修/报废辅助建议和管理报告辅助内容。AI 输出仅作为辅助参考，不直接修改资产状态和业务单据。"
+      style="margin-bottom: 16px;"
+    />
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
       <div class="ai-card">
         <div class="ai-card-icon">
-          <el-icon :size="36" color="#173B57"><Camera /></el-icon>
+          <el-icon :size="36" color="#173B57"><DataAnalysis /></el-icon>
         </div>
-        <h3 class="ai-card-title">AI 资产照片自动分类</h3>
-        <p class="ai-card-desc">上传资产照片后，系统自动识别资产类别，例如电脑、打印机、空调、服务器等。支持批量识别与导入。</p>
-        <el-button disabled size="small" style="margin-top:12px;">上传照片识别</el-button>
+        <h3 class="ai-card-title">资产状态摘要</h3>
+        <p class="ai-card-desc">基于资产台账数据，汇总各状态（闲置、使用中、维修中、待报废、已报废）的资产数量与价值分布，生成资产整体状态摘要。</p>
+        <el-button disabled size="small" style="margin-top:12px;">生成状态摘要</el-button>
         <p class="ai-card-status">功能开发中，暂不可用</p>
       </div>
       <div class="ai-card">
         <div class="ai-card-icon">
           <el-icon :size="36" color="#D97706"><Warning /></el-icon>
         </div>
-        <h3 class="ai-card-title">AI 设备故障风险预测</h3>
-        <p class="ai-card-desc">根据资产使用年限、维修次数、资产类别及同类型资产故障率，预测设备在未来的故障风险等级。</p>
-        <el-button disabled size="small" style="margin-top:12px;">查看风险列表</el-button>
+        <h3 class="ai-card-title">异常资产提示</h3>
+        <p class="ai-card-desc">根据资产使用年限、维修频次、报废记录和操作日志，识别长期闲置、超期未维保、状态异常的资产，生成异常资产提示与管理建议。</p>
+        <el-button disabled size="small" style="margin-top:12px;">查看异常列表</el-button>
         <p class="ai-card-status">功能开发中，暂不可用</p>
       </div>
       <div class="ai-card">
         <div class="ai-card-icon">
-          <el-icon :size="36" color="#4F8F7B"><MapLocation /></el-icon>
+          <el-icon :size="36" color="#4F8F7B"><Tools /></el-icon>
         </div>
-        <h3 class="ai-card-title">AI 最优盘点路线推荐</h3>
-        <p class="ai-card-desc">根据楼栋、楼层、房间和资产数量，智能生成最优盘点路线，减少盘点人员跑动距离，提升盘点效率。</p>
-        <el-button disabled size="small" style="margin-top:12px;">生成盘点路线</el-button>
+        <h3 class="ai-card-title">维修/报废辅助建议</h3>
+        <p class="ai-card-desc">基于维修记录和报废记录，分析资产维修频次与费用趋势，对高频维修或接近报废年限的资产提供维修或报废的辅助建议。</p>
+        <el-button disabled size="small" style="margin-top:12px;">查看建议列表</el-button>
+        <p class="ai-card-status">功能开发中，暂不可用</p>
+      </div>
+      <div class="ai-card">
+        <div class="ai-card-icon">
+          <el-icon :size="36" color="#6366F1"><Document /></el-icon>
+        </div>
+        <h3 class="ai-card-title">管理报告辅助生成</h3>
+        <p class="ai-card-desc">基于系统内部数据，辅助生成资产管理报告内容，包括资产总体情况、异常资产分析、维修/报废建议等，供管理人员参考。</p>
+        <el-button disabled size="small" style="margin-top:12px;">生成报告</el-button>
         <p class="ai-card-status">功能开发中，暂不可用</p>
       </div>
     </div>
@@ -34,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { Camera, Warning, MapLocation } from '@element-plus/icons-vue'
+import { DataAnalysis, Warning, Tools, Document } from '@element-plus/icons-vue'
 import PageHeader from '@/components/PageHeader.vue'
 </script>
 

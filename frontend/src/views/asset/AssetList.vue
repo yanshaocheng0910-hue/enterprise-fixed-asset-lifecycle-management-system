@@ -145,14 +145,6 @@
           </el-col>
         </el-row>
         <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="二维码"><el-input v-model="form.qrCode" placeholder="QR编码" /></el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="RFID"><el-input v-model="form.rfidCode" placeholder="RFID编码" /></el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item label="备注"><el-input v-model="form.remark" type="textarea" :rows="2" placeholder="备注" /></el-form-item>
           </el-col>

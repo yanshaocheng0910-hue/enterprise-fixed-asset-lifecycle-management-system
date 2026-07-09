@@ -27,7 +27,7 @@
 2. 每个功能在 spec 中必须明确「做什么」和「不做什么」。
 3. 没有 Design 文档，不允许建数据库表和写接口代码。
 4. 没有验收测试通过，不允许标记阶段为「已完成」。
-5. 不允许随意重构已稳定的一阶段和二阶段主链路。
+5. 不允许随意重构已稳定的主链路（登录、资产台账、生命周期单据、审批流、RBAC 权限）。
 
 ## 目录说明
 
@@ -42,4 +42,8 @@
 | `06-acceptance-template.md` | 验收报告模板 |
 | `phase-1-core-ledger-spec.md` | 第一阶段规格说明 |
 | `phase-2-lifecycle-flow-spec.md` | 第二阶段规格说明 |
+| `phase-3-approval-flow-spec.md` | 第三阶段审批流规格说明 |
+| `phase-3-approval-flow-design.md` | 第三阶段审批流设计 |
 | `phase-3-approval-flow-draft.md` | 第三阶段审批流草案 |
+| `phase-3-approval-flow-tasks.md` | 第三阶段审批流任务拆分 |
+| `phase-5-user-management-spec.md` | 第五阶段用户管理与权限规格说明 |

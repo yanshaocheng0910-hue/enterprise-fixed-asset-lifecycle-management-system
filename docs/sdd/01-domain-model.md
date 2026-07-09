@@ -38,8 +38,6 @@ User  ──has──> Role (多对多)
 | keeper | String | 保管人/使用人 |
 | location | String | 存放地点 |
 | status | String | 资产状态（IDLE/IN_USE/REPAIRING/WAITING_SCRAP/SCRAPPED 等） |
-| qrCode | String | 二维码编码 |
-| rfidCode | String | RFID 编码 |
 | deleted | Boolean | 逻辑删除标记 |
 
 ### 2.2 AssetCategory（资产分类）
