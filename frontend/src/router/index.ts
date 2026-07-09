@@ -119,6 +119,18 @@ const router = createRouter({
           name: 'RoleManage',
           component: () => import('@/views/system/RoleManage.vue'),
           meta: { title: '角色管理', permission: 'role:view' }
+        },
+        {
+          path: 'approval/todo',
+          name: 'ApprovalTodo',
+          component: () => import('@/views/approval/ApprovalTodo.vue'),
+          meta: { title: '我的待办', permission: 'approval:todo' }
+        },
+        {
+          path: 'approval/done',
+          name: 'ApprovalDone',
+          component: () => import('@/views/approval/ApprovalDone.vue'),
+          meta: { title: '我的已办', permission: 'approval:done' }
         }
       ]
     },

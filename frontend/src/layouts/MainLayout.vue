@@ -50,6 +50,14 @@
           <el-icon><Cpu /></el-icon>
           <span>AI 辅助分析</span>
         </el-menu-item>
+        <el-sub-menu index="approval" v-if="authStore.hasPermission('approval:todo') || authStore.hasPermission('approval:done')">
+          <template #title>
+            <el-icon><Checked /></el-icon>
+            <span>审批中心</span>
+          </template>
+          <el-menu-item index="/approval/todo" v-if="authStore.hasPermission('approval:todo')">我的待办</el-menu-item>
+          <el-menu-item index="/approval/done" v-if="authStore.hasPermission('approval:done')">我的已办</el-menu-item>
+        </el-sub-menu>
         <el-sub-menu index="system" v-if="authStore.hasPermission('user:view') || authStore.hasPermission('role:view')">
           <template #title>
             <el-icon><Setting /></el-icon>
