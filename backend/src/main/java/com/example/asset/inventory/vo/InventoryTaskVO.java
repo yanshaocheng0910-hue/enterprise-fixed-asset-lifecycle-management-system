@@ -21,4 +21,6 @@ public class InventoryTaskVO {
     private LocalDateTime updatedAt;
     private Integer totalRecords;
     private Integer completedRecords;
+    private long totalCount;
+    private long scannedCount;
 }

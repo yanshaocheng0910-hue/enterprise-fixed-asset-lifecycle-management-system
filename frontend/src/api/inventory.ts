@@ -82,3 +82,64 @@ export function completeInventoryTask(taskId: number) {
     `/inventory/tasks/${taskId}/complete`
   )
 }
+
+export interface ScanInventoryRecordRequest {
+  recordId: number
+  actualLocation?: string
+  actualKeeper?: string
+  result?: string
+  remark?: string
+}
+
+export interface InventoryReportData {
+  task: InventoryTaskItem
+  totalCount: number
+  scannedCount: number
+  normalCount: number
+  locationMismatchCount: number
+  keeperMismatchCount: number
+  missingCount: number
+  details: InventoryRecordItem[]
+}
+
+export function startInventoryTask(taskId: number) {
+  return request.post<any, { code: number; message: string; data: null }>(
+    `/inventory/tasks/${taskId}/start`
+  )
+}
+
+export function scanInventoryRecord(data: ScanInventoryRecordRequest) {
+  return request.put<any, { code: number; message: string; data: null }>(
+    '/inventory/records', data
+  )
+}
+
+export function batchScanPending(taskId: number) {
+  return request.post<any, { code: number; message: string; data: null }>(
+    `/inventory/tasks/${taskId}/batch-scan`
+  )
+}
+
+export function getInventoryReport(taskId: number) {
+  return request.get<any, { code: number; message: string; data: InventoryReportData }>(
+    `/inventory/tasks/${taskId}/report`
+  )
+}
+
+export function deleteInventoryTask(taskId: number) {
+  return request.delete<any, { code: number; message: string; data: null }>(
+    `/inventory/tasks/${taskId}`
+  )
+}
+
+export function getDepartments() {
+  return request.get<any, { code: number; message: string; data: string[] }>(
+    '/inventory/departments'
+  )
+}
+
+export function getLocations() {
+  return request.get<any, { code: number; message: string; data: string[] }>(
+    '/inventory/locations'
+  )
+}
