@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.asset.depreciation.mapper.DepreciationReportMapper">
+
+    <!-- 月度折旧明细：优先从 depreciation_record 获取，无记录则从资产表计算 -->
+    <select id="selectMonthlyDepreciationItems" resultType="com.example.asset.depreciation.vo.MonthlyDepreciationItemVO">
+        SELECT
+            a.id AS assetId,
+            a.asset_code,
+            a.asset_name,
+            c.category_name,
+            a.department,
+            a.keeper,
+            a.purchase_date,
+            a.original_value,
+            a.residual_rate,
+            a.useful_life,
+            COALESCE(r.monthly_depreciation,
+                ROUND((a.original_value * (1 - a.residual_rate)) / (a.useful_life * 12), 2)
+            ) AS monthly_depreciation,
+            COALESCE(r.accumulated_depreciation, a.accumulated_depreciation) AS accumulated_depreciation,
+            COALESCE(r.net_value, a.net_value) AS net_value,
+            a.status
+        FROM asset a
+        LEFT JOIN asset_category c ON c.id = a.category_id
+        LEFT JOIN depreciation_record r ON r.asset_id = a.id AND r.depreciation_month = #{month}
+        WHERE a.deleted = 0
+          AND a.status NOT IN ('scrapped')
+        ORDER BY a.department, a.asset_code
+    </select>
+
+    <!-- 部门统计 -->
+    <select id="selectDepartmentStats" resultType="com.example.asset.depreciation.vo.DepartmentStatVO">
+        SELECT
+            a.department,
+            COUNT(*) AS assetCount,
+            SUM(a.original_value) AS originalValueTotal,
+            SUM(a.accumulated_depreciation) AS accumulatedDepreciationTotal,
+            SUM(a.net_value) AS netValueTotal,
+            SUM(ROUND((a.original_value * (1 - a.residual_rate)) / (a.useful_life * 12), 2)) AS monthlyDepreciation
+        FROM asset a
+        WHERE a.deleted = 0
+          AND a.status NOT IN ('scrapped')
+        GROUP BY a.department
+        ORDER BY SUM(a.original_value) DESC
+    </select>
+
+    <!-- 分类统计 -->
+    <select id="selectCategoryStats" resultType="com.example.asset.depreciation.vo.CategoryStatVO">
+        SELECT
+            c.id AS categoryId,
+            c.category_name,
+            COUNT(a.id) AS assetCount,
+            SUM(a.original_value) AS originalValueTotal,
+            SUM(a.accumulated_depreciation) AS accumulatedDepreciationTotal,
+            SUM(a.net_value) AS netValueTotal,
+            SUM(ROUND((a.original_value * (1 - a.residual_rate)) / (a.useful_life * 12), 2)) AS monthlyDepreciation
+        FROM asset_category c
+        LEFT JOIN asset a ON a.category_id = c.id AND a.deleted = 0 AND a.status NOT IN ('scrapped')
+        GROUP BY c.id, c.category_name
+        HAVING COUNT(a.id) > 0
+        ORDER BY SUM(a.original_value) DESC
+    </select>
+
+    <!-- 折旧趋势（按月汇总 depreciation_record） -->
+    <select id="selectDepreciationTrend" resultType="com.example.asset.depreciation.vo.DepreciationTrendVO">
+        SELECT
+            r.depreciation_month AS month,
+            SUM(r.monthly_depreciation) AS monthlyDepreciation,
+            SUM(r.accumulated_depreciation) AS accumulatedDepreciation,
+            SUM(r.net_value) AS netValue
+        FROM depreciation_record r
+        WHERE r.depreciation_month IN
+        <foreach collection="months" item="m" open="(" separator="," close=")">
+            #{m}
+        </foreach>
+        GROUP BY r.depreciation_month
+        ORDER BY r.depreciation_month
+    </select>
+</mapper>
