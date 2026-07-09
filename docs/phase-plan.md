@@ -122,21 +122,36 @@
 
 ---
 
-## 第五阶段：折旧报表与财务数据查看（计划中）
+## 第五阶段：折旧报表与财务数据查看（已完成）
 
-### 实现功能
+### 已实现
 
-- 月度折旧报表
-- 按部门统计
-- 按分类统计
-- Excel 导出（POI 或 EasyExcel）
-- 网页端财务数据查看
-- 折旧数据展示
-- 模拟同步记录
+**后端接口（5 个）：**
 
-### 当前状态
+| 接口 | 说明 |
+|---|---|
+| GET /api/depreciation/report/summary?month= | 月度报表汇总 |
+| GET /api/depreciation/report/monthly?month= | 月度折旧明细 |
+| GET /api/depreciation/statistics/department | 部门统计 |
+| GET /api/depreciation/statistics/category | 分类统计 |
+| GET /api/depreciation/trend | 折旧趋势 |
 
-财务同步记录表已建（migration-v4-finance.sql），前端已有财务同步页面，支持网页端查看折旧数据和模拟同步记录。折旧报表完整业务功能待开发。
+**新增文件：**
+
+- `backend/.../depreciation/controller/DepreciationReportController.java`
+- `backend/.../depreciation/service/DepreciationReportService.java`
+- `backend/.../depreciation/mapper/DepreciationReportMapper.java`
+- `backend/.../depreciation/vo/`（5 个 VO：CategoryStatVO、DepartmentStatVO、DepreciationTrendVO、MonthlyDepreciationItemVO、MonthlyReportSummaryVO）
+- `backend/.../resources/mapper/depreciation/DepreciationReportMapper.xml`
+- `frontend/src/api/depreciation.ts`
+
+**功能：**
+
+- 月度折旧报表汇总与明细
+- 按部门统计折旧数据
+- 按分类统计折旧数据
+- 折旧趋势图展示
+- 网页端财务数据查看与模拟同步记录
 
 ---
 
