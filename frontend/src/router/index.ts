@@ -91,6 +91,18 @@ const router = createRouter({
           meta: { title: '盘点任务', permission: 'inventory:view' }
         },
         {
+          path: 'inventory/tasks/:id/execute',
+          name: 'InventoryExecute',
+          component: () => import('@/views/inventory/InventoryExecute.vue'),
+          meta: { title: '执行盘点', permission: 'inventory:view' }
+        },
+        {
+          path: 'inventory/tasks/:id/report',
+          name: 'InventoryReport',
+          component: () => import('@/views/inventory/InventoryReport.vue'),
+          meta: { title: '盘点报告', permission: 'inventory:view' }
+        },
+        {
           path: 'depreciation/report',
           name: 'DepreciationReport',
           component: () => import('@/views/depreciation/DepreciationReport.vue'),
