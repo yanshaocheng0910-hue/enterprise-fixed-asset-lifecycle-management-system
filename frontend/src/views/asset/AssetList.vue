@@ -1,25 +1,30 @@
 <template>
-  <div>
-    <PageHeader title="资产台账" description="统一维护固定资产基础信息、状态、保管人、部门和存放位置。" />
-
-    <!-- Search Form -->
-    <div class="search-form">
-      <div class="search-toolbar">
+  <div class="asset-list-page">
+    <PageHeader title="资产台账" description="统一维护固定资产基础信息、状态、保管人、部门及存放位置，支持多条件检索与导出。">
+      <template #actions>
         <el-button type="primary" @click="openCreate">新增资产</el-button>
         <el-button type="success" :loading="exporting" @click="handleExport">
           <el-icon><Download /></el-icon>导出 Excel
         </el-button>
-      </div>
-      <el-form :model="query" :inline="true" size="default" label-width="80">
-        <el-form-item label="资产编号"><el-input v-model="query.assetCode" placeholder="资产编号" clearable style="width:150px" /></el-form-item>
-        <el-form-item label="资产名称"><el-input v-model="query.assetName" placeholder="资产名称" clearable style="width:150px" /></el-form-item>
+      </template>
+    </PageHeader>
+
+    <!-- 筛选区 -->
+    <div class="filter-card">
+      <el-form :model="query" :inline="true" size="default" label-width="80" class="filter-form">
+        <el-form-item label="资产编号">
+          <el-input v-model="query.assetCode" placeholder="请输入资产编号" clearable style="width:170px" />
+        </el-form-item>
+        <el-form-item label="资产名称">
+          <el-input v-model="query.assetName" placeholder="请输入资产名称" clearable style="width:170px" />
+        </el-form-item>
         <el-form-item label="资产分类">
-          <el-select v-model="query.categoryId" placeholder="选择分类" clearable style="width:150px">
+          <el-select v-model="query.categoryId" placeholder="选择分类" clearable style="width:160px">
             <el-option v-for="c in categories" :key="c.id" :label="c.categoryName" :value="c.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="资产状态">
-          <el-select v-model="query.status" placeholder="选择状态" clearable style="width:140px">
+          <el-select v-model="query.status" placeholder="选择状态" clearable style="width:150px">
             <el-option v-for="s in statusOptions" :key="s.code" :label="s.label" :value="s.code" />
           </el-select>
         </el-form-item>
@@ -32,58 +37,71 @@
           </el-button>
         </el-form-item>
       </el-form>
+
       <div v-show="advancedVisible" class="advanced-filter">
-        <el-form :model="query" :inline="true" size="default" label-width="80">
+        <el-form :model="query" :inline="true" size="default" label-width="80" class="filter-form">
           <el-form-item label="所属部门">
-            <el-select v-model="query.department" placeholder="部门" clearable filterable style="width:130px">
+            <el-select v-model="query.department" placeholder="选择部门" clearable filterable style="width:150px">
               <el-option v-for="d in departmentOptions" :key="d.id" :label="d.label" :value="d.value" />
             </el-select>
           </el-form-item>
           <el-form-item label="使用人">
-            <el-select v-model="query.keeper" placeholder="使用人" clearable filterable style="width:130px">
+            <el-select v-model="query.keeper" placeholder="选择使用人" clearable filterable style="width:150px">
               <el-option v-for="k in keeperOptions" :key="k.id" :label="k.label" :value="k.value" />
             </el-select>
           </el-form-item>
           <el-form-item label="存放地点">
-            <el-select v-model="query.location" placeholder="地点" clearable filterable style="width:130px">
+            <el-select v-model="query.location" placeholder="选择地点" clearable filterable style="width:150px">
               <el-option v-for="l in locationOptions" :key="l.id" :label="l.label" :value="l.value" />
             </el-select>
           </el-form-item>
           <el-form-item label="购置日期">
-            <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" style="width:240px" />
+            <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width:260px" />
           </el-form-item>
         </el-form>
       </div>
     </div>
 
-    <!-- Table -->
-    <div class="table-wrapper">
-      <el-table :data="tableData" border stripe v-loading="loading" style="width:100%">
+    <!-- 表格区 -->
+    <div class="table-card">
+      <el-table :data="tableData" border stripe v-loading="loading" style="width:100%" header-row-class-name="table-header">
         <el-table-column prop="assetCode" label="资产编号" width="140" />
-        <el-table-column prop="assetName" label="资产名称" min-width="140" />
+        <el-table-column prop="assetName" label="资产名称" min-width="140" show-overflow-tooltip />
         <el-table-column prop="categoryName" label="分类" width="100" />
-        <el-table-column prop="brand" label="品牌" width="90" />
+        <el-table-column prop="brand" label="品牌" width="90" show-overflow-tooltip />
         <el-table-column prop="specification" label="规格型号" width="120" show-overflow-tooltip />
-        <el-table-column prop="department" label="所属部门" width="100" />
+        <el-table-column prop="department" label="所属部门" width="100" show-overflow-tooltip />
         <el-table-column prop="keeper" label="使用人" width="80" />
         <el-table-column prop="location" label="存放地点" width="120" show-overflow-tooltip />
-        <el-table-column prop="originalValue" label="原值" width="110" align="right">
+        <el-table-column prop="originalValue" label="原值" width="120" align="right" header-align="right" class-name="gx-amount">
           <template #default="{ row }">{{ formatMoney(row.originalValue) }}</template>
         </el-table-column>
-        <el-table-column prop="netValue" label="净值" width="110" align="right">
+        <el-table-column prop="netValue" label="净值" width="120" align="right" header-align="right" class-name="gx-amount">
           <template #default="{ row }">{{ formatMoney(row.netValue) }}</template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="90">
-          <template #default="{ row }"><AssetStatusTag :status="row.status" /></template>
+        <el-table-column prop="status" label="状态" width="90" align="center">
+          <template #default="{ row }"><StatusTag :value="row.status" category="asset" effect="light" /></template>
         </el-table-column>
-        <el-table-column prop="purchaseDate" label="购置日期" width="100" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column prop="purchaseDate" label="购置日期" width="110" />
+        <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="goDetail(row.id)">查看</el-button>
-            <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            <el-dropdown trigger="click" @command="(cmd: string) => { if (cmd === 'edit') openEdit(row); else if (cmd === 'delete') handleDelete(row) }">
+              <el-button link type="primary" size="small">
+                更多<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="edit">编辑</el-dropdown-item>
+                  <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </template>
         </el-table-column>
+        <template #empty>
+          <el-empty description="暂无资产数据" :image-size="80" />
+        </template>
       </el-table>
       <el-pagination
         v-model:current-page="pageNum"
@@ -91,6 +109,7 @@
         :total="total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next"
+        background
         @current-change="fetchData"
         @size-change="fetchData"
       />
@@ -197,7 +216,7 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
-import AssetStatusTag from '@/components/AssetStatusTag.vue'
+import StatusTag from '@/components/StatusTag.vue'
 import { getAssetPage, createAsset, updateAsset, deleteAsset, getStatusOptions, getCategoryList } from '@/api/asset'
 import { Download, ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 import { exportAssets } from '@/api/export'
@@ -383,35 +402,60 @@ onMounted(() => { fetchData(); fetchOptions(); loadMasterData() })
 </script>
 
 <style scoped>
-.search-form {
-  background: #fff;
-  padding: 16px;
-  border-radius: 6px;
+/* 筛选卡片：白色卡片，紧凑稳重 */
+.filter-card {
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  margin-bottom: 12px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
+  margin-bottom: var(--space-base);
 }
-.search-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px dashed var(--color-border);
+.filter-form :deep(.el-form-item) {
+  margin-bottom: var(--space-md);
+  margin-right: var(--space-md);
+}
+.filter-form :deep(.el-form-item:last-child) {
+  margin-right: 0;
 }
 .advanced-filter {
-  margin-top: 8px;
-  padding-top: 12px;
+  margin-top: var(--space-sm);
+  padding-top: var(--space-md);
   border-top: 1px dashed var(--color-border);
 }
-.table-wrapper {
-  background: #fff;
-  padding: 12px;
-  border-radius: 6px;
+
+/* 表格卡片 */
+.table-card {
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-lg);
 }
+/* 表头：浅灰底，加粗，稳重表样 */
+.table-card :deep(.table-header th) {
+  background: var(--color-bg-soft) !important;
+  color: var(--color-text);
+  font-weight: 600;
+}
+/* 金额列：等宽数字，便于对账 */
+.table-card :deep(.gx-amount .cell) {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--color-text);
+  letter-spacing: 0.2px;
+}
+
+/* 分页：右对齐，与表格间距统一 */
+.table-card :deep(.el-pagination) {
+  margin-top: var(--space-base);
+  justify-content: flex-end;
+}
+
+/* 弹窗提示 */
 .form-tip {
   font-size: 12px;
   color: var(--color-text-secondary);
-  padding: 0 12px 12px;
+  padding: 0 var(--space-md) var(--space-md);
 }
 </style>

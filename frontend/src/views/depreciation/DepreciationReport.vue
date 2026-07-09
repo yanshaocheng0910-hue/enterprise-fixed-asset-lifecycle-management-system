@@ -1,224 +1,268 @@
 <template>
-  <div>
-    <PageHeader title="折旧报表" description="查看固定资产折旧总览、部门/分类价值统计、月度趋势及风险资产分析。" />
+  <div class="depreciation-report">
+    <PageHeader title="折旧报表" description="资产价值分析与月度折旧趋势">
+      <template #actions>
+        <el-button type="success" :loading="exporting" @click="handleExport">
+          <el-icon><Download /></el-icon>导出报表
+        </el-button>
+      </template>
+    </PageHeader>
 
-    <!-- 折旧总览指标卡 -->
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:16px;">
-      <DataCard label="资产总数" :value="summary.assetCount ?? '-'" sub="件" />
-      <DataCard label="原值总额" :value="formatMoney(summary.totalOriginalValue)" sub="元" />
-      <DataCard label="净值总额" :value="formatMoney(summary.totalNetValue)" sub="元" />
-      <DataCard label="累计折旧" :value="formatMoney(summary.totalAccumulatedDepreciation)" sub="元" />
-      <DataCard label="本月折旧额" :value="formatMoney(summary.monthlyDepreciation)" sub="元" />
-      <DataCard label="平均折旧率" :value="summary.averageDepreciationRate != null ? Number(summary.averageDepreciationRate).toFixed(2) + '%' : '-'" />
-      <DataCard label="风险资产" :value="(summary.lowValueAssetCount ?? 0) + (summary.nearEndAssetCount ?? 0)" sub="件" />
+    <!-- 核心指标卡 -->
+    <div class="metric-grid">
+      <DataCard
+        label="资产原值"
+        :value="formatMoney(summary.totalOriginalValue)"
+        unit="元"
+        variant="primary"
+        accent
+        sub="全部资产购置金额"
+      />
+      <DataCard
+        label="资产净值"
+        :value="formatMoney(summary.totalNetValue)"
+        unit="元"
+        variant="success"
+        accent
+        sub="原值减去累计折旧"
+      />
+      <DataCard
+        label="累计折旧"
+        :value="formatMoney(summary.totalAccumulatedDepreciation)"
+        unit="元"
+        variant="warning"
+        accent
+        sub="已计提折旧总额"
+      />
+      <DataCard
+        label="本月折旧"
+        :value="formatMoney(summary.monthlyDepreciation)"
+        unit="元"
+        variant="info"
+        accent
+        sub="当月计提金额"
+      />
     </div>
 
     <!-- 图表区域：部门价值 + 分类价值 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-      <div style="background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:12px;">
-        <h3 style="font-size:14px;margin:0 0 8px;color:var(--color-text);">部门资产价值统计</h3>
-        <div v-if="deptStats.length" style="height:320px;">
-          <v-chart :option="deptChartOption" class="chart" autoresize style="height:100%;" />
+    <div class="chart-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <h3 class="panel-title">部门资产价值统计</h3>
+          <p class="panel-sub">各部门资产原值与净值对比</p>
+        </div>
+        <div v-if="deptStats.length" class="chart-box">
+          <v-chart :option="deptChartOption" class="chart" autoresize />
         </div>
         <EmptyState v-else text="暂无部门数据" />
       </div>
-      <div style="background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:12px;">
-        <h3 style="font-size:14px;margin:0 0 8px;color:var(--color-text);">分类资产价值统计</h3>
-        <div v-if="catStats.length" style="height:320px;">
-          <v-chart :option="catChartOption" class="chart" autoresize style="height:100%;" />
+      <div class="panel">
+        <div class="panel-head">
+          <h3 class="panel-title">分类资产价值统计</h3>
+          <p class="panel-sub">各分类资产原值与净值对比</p>
+        </div>
+        <div v-if="catStats.length" class="chart-box">
+          <v-chart :option="catChartOption" class="chart" autoresize />
         </div>
         <EmptyState v-else text="暂无分类数据" />
       </div>
     </div>
 
     <!-- 月度折旧趋势 -->
-    <div style="background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:12px;margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <div class="panel">
+      <div class="panel-head panel-head--row">
         <div>
-          <h3 style="font-size:15px;margin:0;color:var(--color-text);font-weight:600;">月度折旧趋势（近12个月）</h3>
-          <p style="font-size:12px;color:var(--color-text-secondary);margin:4px 0 0;">柱状图为各月折旧额，折线为累计折旧与资产净值，用于观察折旧变化趋势</p>
+          <h3 class="panel-title panel-title--lg">月度折旧趋势（近 12 个月）</h3>
+          <p class="panel-sub">柱状图为各月折旧额，折线为累计折旧与资产净值，用于观察折旧变化趋势</p>
         </div>
         <el-tag v-if="trendData.length" type="info" size="small" effect="plain">
           最大月折旧: {{ formatMoney(trendMaxMonthly) }} 元
         </el-tag>
       </div>
-      <div v-if="trendData.length" style="height:360px;">
-        <v-chart :option="trendChartOption" class="chart" autoresize style="height:100%;" />
+      <div v-if="trendData.length" class="chart-box chart-box--lg">
+        <v-chart :option="trendChartOption" class="chart" autoresize />
       </div>
       <EmptyState v-else text="暂无趋势数据" />
     </div>
 
     <!-- Tab 切换 -->
-    <el-tabs v-model="activeTab" style="background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:12px;">
-      <!-- 月度折旧明细 -->
-      <el-tab-pane label="月度折旧明细" name="monthly">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-          <span style="font-size:14px;color:var(--color-text-secondary);">报表月份：</span>
-          <el-date-picker
-            v-model="currentMonth"
-            type="month"
-            placeholder="选择月份"
-            format="YYYY-MM"
-            value-format="YYYY-MM"
-            @change="fetchMonthlyData"
+    <div class="panel panel--tabs">
+      <el-tabs v-model="activeTab">
+        <!-- 月度折旧明细 -->
+        <el-tab-pane label="月度折旧明细" name="monthly">
+          <div class="toolbar">
+            <span class="toolbar-label">报表月份：</span>
+            <el-date-picker
+              v-model="currentMonth"
+              type="month"
+              placeholder="选择月份"
+              format="YYYY-MM"
+              value-format="YYYY-MM"
+              @change="fetchMonthlyData"
+            />
+          </div>
+          <el-table :data="monthlyItems" border stripe v-loading="monthlyLoading" max-height="500">
+            <el-table-column prop="assetCode" label="资产编号" width="140" fixed />
+            <el-table-column prop="assetName" label="资产名称" width="150" fixed />
+            <el-table-column prop="categoryName" label="分类" width="100" />
+            <el-table-column prop="department" label="部门" width="120" />
+            <el-table-column prop="keeper" label="保管人" width="80" />
+            <el-table-column prop="purchaseDate" label="购置日期" width="110" />
+            <el-table-column label="原值" width="120" align="right">
+              <template #default="{ row }">{{ formatMoney(row.originalValue) }}</template>
+            </el-table-column>
+            <el-table-column label="残值率" width="80" align="right">
+              <template #default="{ row }">{{ row.residualRate != null ? (Number(row.residualRate) * 100).toFixed(2) + '%' : '-' }}</template>
+            </el-table-column>
+            <el-table-column label="使用年限" width="80" align="center">
+              <template #default="{ row }">{{ row.usefulLife ?? '-' }}</template>
+            </el-table-column>
+            <el-table-column label="月折旧额" width="120" align="right">
+              <template #default="{ row }">
+                <span class="num-warning">{{ formatMoney(row.monthlyDepreciation) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="累计折旧" width="120" align="right">
+              <template #default="{ row }">{{ formatMoney(row.accumulatedDepreciation) }}</template>
+            </el-table-column>
+            <el-table-column label="当前净值" width="120" align="right">
+              <template #default="{ row }">
+                <span class="num-success">{{ formatMoney(row.netValue) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="90">
+              <template #default="{ row }">
+                <AssetStatusTag :status="row.status" />
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <!-- 部门统计 -->
+        <el-tab-pane label="部门统计" name="department">
+          <el-table :data="deptStats" border stripe v-loading="deptLoading">
+            <el-table-column prop="department" label="部门" width="160" />
+            <el-table-column prop="assetCount" label="资产数量" width="100" align="center" />
+            <el-table-column label="原值合计" align="right">
+              <template #default="{ row }">{{ formatMoney(row.originalValueTotal) }}</template>
+            </el-table-column>
+            <el-table-column label="累计折旧" align="right">
+              <template #default="{ row }">{{ formatMoney(row.accumulatedDepreciationTotal) }}</template>
+            </el-table-column>
+            <el-table-column label="净值合计" align="right">
+              <template #default="{ row }">
+                <span class="num-success">{{ formatMoney(row.netValueTotal) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="月折旧额" align="right">
+              <template #default="{ row }">
+                <span class="num-warning">{{ formatMoney(row.monthlyDepreciation) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="折旧率" width="100" align="right">
+              <template #default="{ row }">
+                {{ row.originalValueTotal > 0 ? ((Number(row.accumulatedDepreciationTotal) / Number(row.originalValueTotal)) * 100).toFixed(1) + '%' : '-' }}
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <!-- 分类统计 -->
+        <el-tab-pane label="分类统计" name="category">
+          <el-table :data="catStats" border stripe v-loading="catLoading">
+            <el-table-column prop="categoryName" label="资产分类" width="160" />
+            <el-table-column prop="assetCount" label="资产数量" width="100" align="center" />
+            <el-table-column label="原值合计" align="right">
+              <template #default="{ row }">{{ formatMoney(row.originalValueTotal) }}</template>
+            </el-table-column>
+            <el-table-column label="累计折旧" align="right">
+              <template #default="{ row }">{{ formatMoney(row.accumulatedDepreciationTotal) }}</template>
+            </el-table-column>
+            <el-table-column label="净值合计" align="right">
+              <template #default="{ row }">
+                <span class="num-success">{{ formatMoney(row.netValueTotal) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="月折旧额" align="right">
+              <template #default="{ row }">
+                <span class="num-warning">{{ formatMoney(row.monthlyDepreciation) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="折旧率" width="100" align="right">
+              <template #default="{ row }">
+                {{ row.originalValueTotal > 0 ? ((Number(row.accumulatedDepreciationTotal) / Number(row.originalValueTotal)) * 100).toFixed(1) + '%' : '-' }}
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <!-- 低净值资产 -->
+        <el-tab-pane :label="`低净值资产(${lowValueAssets.length})`" name="lowValue">
+          <el-alert
+            class="risk-alert"
+            title="低净值资产"
+            type="warning"
+            show-icon
+            :closable="false"
+            description="净值率较低的资产存在减值风险，建议关注其使用状态与处置计划，必要时进行减值测试或报废处置。"
           />
-          <el-button type="success" :loading="exporting" @click="handleExport">
-            <el-icon><Download /></el-icon>导出报表
-          </el-button>
-        </div>
-        <el-table :data="monthlyItems" border stripe v-loading="monthlyLoading" max-height="500">
-          <el-table-column prop="assetCode" label="资产编号" width="140" fixed />
-          <el-table-column prop="assetName" label="资产名称" width="150" fixed />
-          <el-table-column prop="categoryName" label="分类" width="100" />
-          <el-table-column prop="department" label="部门" width="120" />
-          <el-table-column prop="keeper" label="保管人" width="80" />
-          <el-table-column prop="purchaseDate" label="购置日期" width="110" />
-          <el-table-column label="原值" width="120" align="right">
-            <template #default="{ row }">{{ formatMoney(row.originalValue) }}</template>
-          </el-table-column>
-          <el-table-column label="残值率" width="80" align="right">
-            <template #default="{ row }">{{ row.residualRate != null ? (Number(row.residualRate) * 100).toFixed(2) + '%' : '-' }}</template>
-          </el-table-column>
-          <el-table-column label="使用年限" width="80" align="center">
-            <template #default="{ row }">{{ row.usefulLife ?? '-' }}</template>
-          </el-table-column>
-          <el-table-column label="月折旧额" width="120" align="right">
-            <template #default="{ row }">
-              <span style="color:#D97706;font-weight:600;">{{ formatMoney(row.monthlyDepreciation) }}</span>
+          <el-table :data="lowValueAssets" border stripe v-loading="lowValueLoading">
+            <el-table-column prop="assetCode" label="资产编号" width="150" />
+            <el-table-column prop="assetName" label="资产名称" min-width="140" />
+            <el-table-column prop="department" label="部门" width="120" />
+            <el-table-column label="原值" width="130" align="right">
+              <template #default="{ row }">{{ formatMoney(row.originalValue) }}</template>
+            </el-table-column>
+            <el-table-column label="净值" width="130" align="right">
+              <template #default="{ row }">
+                <span class="num-danger">{{ formatMoney(row.netValue) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="净值率" width="100" align="right">
+              <template #default="{ row }">
+                <el-tag type="danger" size="small">{{ (Number(row.netValueRate) * 100).toFixed(1) }}%</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="90">
+              <template #default="{ row }">
+                <AssetStatusTag :status="row.status" />
+              </template>
+            </el-table-column>
+            <template #empty>
+              <el-empty description="暂无低净值资产" />
             </template>
-          </el-table-column>
-          <el-table-column label="累计折旧" width="120" align="right">
-            <template #default="{ row }">{{ formatMoney(row.accumulatedDepreciation) }}</template>
-          </el-table-column>
-          <el-table-column label="当前净值" width="120" align="right">
-            <template #default="{ row }">
-              <span style="color:#4F8F7B;font-weight:600;">{{ formatMoney(row.netValue) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="90">
-            <template #default="{ row }">
-              <AssetStatusTag :status="row.status" />
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-tab-pane>
+          </el-table>
+        </el-tab-pane>
 
-      <!-- 部门统计 -->
-      <el-tab-pane label="部门统计" name="department">
-        <el-table :data="deptStats" border stripe v-loading="deptLoading">
-          <el-table-column prop="department" label="部门" width="160" />
-          <el-table-column prop="assetCount" label="资产数量" width="100" align="center" />
-          <el-table-column label="原值合计" align="right">
-            <template #default="{ row }">{{ formatMoney(row.originalValueTotal) }}</template>
-          </el-table-column>
-          <el-table-column label="累计折旧" align="right">
-            <template #default="{ row }">{{ formatMoney(row.accumulatedDepreciationTotal) }}</template>
-          </el-table-column>
-          <el-table-column label="净值合计" align="right">
-            <template #default="{ row }">
-              <span style="color:#4F8F7B;font-weight:600;">{{ formatMoney(row.netValueTotal) }}</span>
+        <!-- 接近使用年限资产 -->
+        <el-tab-pane :label="`接近报废资产(${nearEndAssets.length})`" name="nearEnd">
+          <el-table :data="nearEndAssets" border stripe v-loading="nearEndLoading">
+            <el-table-column prop="assetCode" label="资产编号" width="150" />
+            <el-table-column prop="assetName" label="资产名称" min-width="140" />
+            <el-table-column prop="purchaseDate" label="购置日期" width="120" />
+            <el-table-column label="使用年限" width="90" align="center">
+              <template #default="{ row }">{{ row.usefulLife }} 年</template>
+            </el-table-column>
+            <el-table-column label="已使用" width="90" align="center">
+              <template #default="{ row }">{{ row.usedMonths }} 月</template>
+            </el-table-column>
+            <el-table-column label="剩余" width="90" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.remainingMonths <= 6 ? 'danger' : 'warning'" size="small">{{ row.remainingMonths }} 月</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="90">
+              <template #default="{ row }">
+                <AssetStatusTag :status="row.status" />
+              </template>
+            </el-table-column>
+            <template #empty>
+              <el-empty description="暂无接近报废资产" />
             </template>
-          </el-table-column>
-          <el-table-column label="月折旧额" align="right">
-            <template #default="{ row }">
-              <span style="color:#D97706;font-weight:600;">{{ formatMoney(row.monthlyDepreciation) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="折旧率" width="100" align="right">
-            <template #default="{ row }">
-              {{ row.originalValueTotal > 0 ? ((Number(row.accumulatedDepreciationTotal) / Number(row.originalValueTotal)) * 100).toFixed(1) + '%' : '-' }}
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-tab-pane>
-
-      <!-- 分类统计 -->
-      <el-tab-pane label="分类统计" name="category">
-        <el-table :data="catStats" border stripe v-loading="catLoading">
-          <el-table-column prop="categoryName" label="资产分类" width="160" />
-          <el-table-column prop="assetCount" label="资产数量" width="100" align="center" />
-          <el-table-column label="原值合计" align="right">
-            <template #default="{ row }">{{ formatMoney(row.originalValueTotal) }}</template>
-          </el-table-column>
-          <el-table-column label="累计折旧" align="right">
-            <template #default="{ row }">{{ formatMoney(row.accumulatedDepreciationTotal) }}</template>
-          </el-table-column>
-          <el-table-column label="净值合计" align="right">
-            <template #default="{ row }">
-              <span style="color:#4F8F7B;font-weight:600;">{{ formatMoney(row.netValueTotal) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="月折旧额" align="right">
-            <template #default="{ row }">
-              <span style="color:#D97706;font-weight:600;">{{ formatMoney(row.monthlyDepreciation) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="折旧率" width="100" align="right">
-            <template #default="{ row }">
-              {{ row.originalValueTotal > 0 ? ((Number(row.accumulatedDepreciationTotal) / Number(row.originalValueTotal)) * 100).toFixed(1) + '%' : '-' }}
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-tab-pane>
-
-      <!-- 低净值资产 -->
-      <el-tab-pane :label="`低净值资产(${lowValueAssets.length})`" name="lowValue">
-        <el-table :data="lowValueAssets" border stripe v-loading="lowValueLoading">
-          <el-table-column prop="assetCode" label="资产编号" width="150" />
-          <el-table-column prop="assetName" label="资产名称" min-width="140" />
-          <el-table-column prop="department" label="部门" width="120" />
-          <el-table-column label="原值" width="130" align="right">
-            <template #default="{ row }">{{ formatMoney(row.originalValue) }}</template>
-          </el-table-column>
-          <el-table-column label="净值" width="130" align="right">
-            <template #default="{ row }">
-              <span style="color:#DC2626;font-weight:600;">{{ formatMoney(row.netValue) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="净值率" width="100" align="right">
-            <template #default="{ row }">
-              <el-tag type="danger" size="small">{{ (Number(row.netValueRate) * 100).toFixed(1) }}%</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="90">
-            <template #default="{ row }">
-              <AssetStatusTag :status="row.status" />
-            </template>
-          </el-table-column>
-          <template #empty>
-            <el-empty description="暂无低净值资产" />
-          </template>
-        </el-table>
-      </el-tab-pane>
-
-      <!-- 接近使用年限资产 -->
-      <el-tab-pane :label="`接近报废资产(${nearEndAssets.length})`" name="nearEnd">
-        <el-table :data="nearEndAssets" border stripe v-loading="nearEndLoading">
-          <el-table-column prop="assetCode" label="资产编号" width="150" />
-          <el-table-column prop="assetName" label="资产名称" min-width="140" />
-          <el-table-column prop="purchaseDate" label="购置日期" width="120" />
-          <el-table-column label="使用年限" width="90" align="center">
-            <template #default="{ row }">{{ row.usefulLife }} 年</template>
-          </el-table-column>
-          <el-table-column label="已使用" width="90" align="center">
-            <template #default="{ row }">{{ row.usedMonths }} 月</template>
-          </el-table-column>
-          <el-table-column label="剩余" width="90" align="center">
-            <template #default="{ row }">
-              <el-tag :type="row.remainingMonths <= 6 ? 'danger' : 'warning'" size="small">{{ row.remainingMonths }} 月</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="90">
-            <template #default="{ row }">
-              <AssetStatusTag :status="row.status" />
-            </template>
-          </el-table-column>
-          <template #empty>
-            <el-empty description="暂无接近报废资产" />
-          </template>
-        </el-table>
-      </el-tab-pane>
-    </el-tabs>
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+    </div>
   </div>
 </template>
 
@@ -456,3 +500,92 @@ onMounted(() => {
   fetchNearEndAssets()
 })
 </script>
+
+<style scoped>
+.depreciation-report {
+  /* 容器 */
+}
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-base);
+  margin-bottom: var(--space-base);
+}
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-base);
+  margin-bottom: var(--space-base);
+}
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-base);
+  margin-bottom: var(--space-base);
+}
+.panel--tabs {
+  padding: var(--space-base);
+}
+.panel-head {
+  margin-bottom: var(--space-md);
+}
+.panel-head--row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+.panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.4;
+}
+.panel-title--lg {
+  font-size: 15px;
+}
+.panel-sub {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+.chart-box {
+  height: 320px;
+}
+.chart-box--lg {
+  height: 360px;
+}
+.chart {
+  height: 100%;
+  width: 100%;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-base);
+}
+.toolbar-label {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.risk-alert {
+  margin-bottom: var(--space-md);
+}
+.num-warning {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+.num-success {
+  color: var(--color-success);
+  font-weight: 600;
+}
+.num-danger {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+</style>

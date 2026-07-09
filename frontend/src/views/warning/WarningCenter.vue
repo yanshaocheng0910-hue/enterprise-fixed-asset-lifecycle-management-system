@@ -1,43 +1,52 @@
 <template>
-  <div>
-    <PageHeader title="预警中心" description="集中展示资产价值、使用年限、闲置、维修、盘点和财务同步风险，便于及时发现异常资产。" />
-
-    <!-- 顶部统计卡片：总预警、高风险、中风险、低风险 -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
-      <DataCard label="总预警数" :value="summary.totalWarningCount ?? 0" sub="条" />
-      <DataCard label="高风险" :value="summary.highWarningCount ?? 0" sub="条" color="#D93025" />
-      <DataCard label="中风险" :value="summary.mediumWarningCount ?? 0" sub="条" color="#E3742E" />
-      <DataCard label="低风险" :value="summary.lowWarningCount ?? 0" sub="条" color="#1A73E8" />
-    </div>
-
-    <!-- 预警类型数量卡片 -->
-    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px;">
-      <DataCard label="低净值资产" :value="summary.lowValueCount ?? 0" sub="条" />
-      <DataCard label="接近使用年限" :value="summary.nearEndCount ?? 0" sub="条" />
-      <DataCard label="长期闲置" :value="summary.idleLongTimeCount ?? 0" sub="条" />
-      <DataCard label="维修超期" :value="summary.repairOverdueCount ?? 0" sub="条" />
-      <DataCard label="盘点异常" :value="summary.inventoryAbnormalCount ?? 0" sub="条" />
-      <DataCard label="财务同步异常" :value="summary.financeSyncAbnormalCount ?? 0" sub="条" />
-    </div>
-
-    <!-- 筛选区域 + 预警列表 -->
-    <div style="background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:12px;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
-        <span style="font-size:14px;color:var(--color-text-secondary);">预警类型：</span>
-        <el-select v-model="filterType" placeholder="全部类型" clearable style="width:180px;" @change="handleFilter">
-          <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-        </el-select>
-        <span style="font-size:14px;color:var(--color-text-secondary);margin-left:12px;">预警等级：</span>
-        <el-select v-model="filterLevel" placeholder="全部等级" clearable style="width:160px;" @change="handleFilter">
-          <el-option label="高风险" value="HIGH" />
-          <el-option label="中风险" value="MEDIUM" />
-          <el-option label="低风险" value="LOW" />
-        </el-select>
-        <el-button @click="handleReset">重置</el-button>
-        <el-button type="primary" @click="fetchData">刷新</el-button>
+  <div class="warning-center">
+    <PageHeader title="预警中心" description="集中展示资产价值、使用年限、闲置、维修、盘点和财务同步风险">
+      <template #actions>
         <el-button type="success" :loading="exporting" @click="handleExport">
           <el-icon><Download /></el-icon>导出预警
         </el-button>
+      </template>
+    </PageHeader>
+
+    <!-- 风险层级统计卡片 -->
+    <div class="stat-grid stat-grid-4">
+      <DataCard label="总预警数" :value="summary.totalWarningCount ?? 0" unit="条" variant="primary" accent />
+      <DataCard label="高风险" :value="summary.highWarningCount ?? 0" unit="条" variant="danger" accent sub="需立即处理" />
+      <DataCard label="中风险" :value="summary.mediumWarningCount ?? 0" unit="条" variant="warning" accent sub="关注并跟进" />
+      <DataCard label="低风险" :value="summary.lowWarningCount ?? 0" unit="条" variant="info" accent sub="记录备查" />
+    </div>
+
+    <!-- 预警类型数量卡片 -->
+    <div class="stat-grid stat-grid-6">
+      <DataCard label="低净值资产" :value="summary.lowValueCount ?? 0" unit="条" />
+      <DataCard label="接近使用年限" :value="summary.nearEndCount ?? 0" unit="条" />
+      <DataCard label="长期闲置" :value="summary.idleLongTimeCount ?? 0" unit="条" />
+      <DataCard label="维修超期" :value="summary.repairOverdueCount ?? 0" unit="条" />
+      <DataCard label="盘点异常" :value="summary.inventoryAbnormalCount ?? 0" unit="条" />
+      <DataCard label="财务同步异常" :value="summary.financeSyncAbnormalCount ?? 0" unit="条" />
+    </div>
+
+    <!-- 筛选区域 + 预警列表 -->
+    <div class="panel">
+      <div class="filter-bar">
+        <div class="filter-item">
+          <span class="filter-label">预警类型</span>
+          <el-select v-model="filterType" placeholder="全部类型" clearable style="width:180px;" @change="handleFilter">
+            <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">预警等级</span>
+          <el-select v-model="filterLevel" placeholder="全部等级" clearable style="width:160px;" @change="handleFilter">
+            <el-option label="高风险" value="HIGH" />
+            <el-option label="中风险" value="MEDIUM" />
+            <el-option label="低风险" value="LOW" />
+          </el-select>
+        </div>
+        <div class="filter-actions">
+          <el-button @click="handleReset">重置</el-button>
+          <el-button type="primary" @click="fetchData">刷新</el-button>
+        </div>
       </div>
 
       <el-table :data="tableData" border stripe v-loading="loading" max-height="600" :row-class-name="rowClassName">
@@ -80,7 +89,7 @@
         </template>
       </el-table>
 
-      <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+      <div class="pagination">
         <el-pagination
           v-model:current-page="pageNum"
           v-model:page-size="pageSize"
@@ -235,16 +244,74 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.warning-center {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 统计卡片网格 */
+.stat-grid {
+  display: grid;
+  gap: var(--space-base);
+  margin-bottom: var(--space-lg);
+}
+.stat-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+.stat-grid-6 {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+/* 筛选 + 表格面板 */
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-lg);
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-base);
+}
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.filter-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-left: auto;
+}
+
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-base);
+}
+
+/* 行级风险背景 */
 :deep(.row-high-risk) {
-  background-color: #fef2f2 !important;
+  background-color: var(--color-danger-light) !important;
 }
 :deep(.row-high-risk:hover > td) {
-  background-color: #fee2e2 !important;
+  background-color: #F7D3DA !important;
 }
 :deep(.row-medium-risk) {
-  background-color: #fffbeb !important;
+  background-color: var(--color-warning-light) !important;
 }
 :deep(.row-medium-risk:hover > td) {
-  background-color: #fef3c7 !important;
+  background-color: #F6E6C4 !important;
 }
 </style>

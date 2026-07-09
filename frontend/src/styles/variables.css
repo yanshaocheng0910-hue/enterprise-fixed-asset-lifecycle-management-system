@@ -1,16 +1,62 @@
 :root {
-  --color-primary: #173B57;
-  --color-primary-hover: #24577A;
-  --color-accent: #4F8F7B;
-  --color-accent-light: #E7F2EE;
+  /* ===== 主色 ===== */
+  --color-primary: #1F4E79;
+  --color-primary-hover: #2A6BA6;
+  --color-primary-light: #EAF2FB;
+  --color-accent: #2F6BFF;
+  --color-accent-light: #E8F0FF;
+
+  /* ===== 语义色（低饱和、稳重） ===== */
+  --color-success: #18A058;
+  --color-success-light: #E7F6EE;
+  --color-warning: #F0A020;
+  --color-warning-light: #FDF4E3;
+  --color-danger: #D03050;
+  --color-danger-light: #FCE8EC;
+  --color-info: #2F6BFF;
+  --color-info-light: #E8F0FF;
+
+  /* ===== 中性色 ===== */
   --color-bg: #F5F7FA;
+  --color-bg-soft: #F6F8FB;
   --color-surface: #FFFFFF;
+  --color-surface-hover: #FAFBFC;
   --color-border: #E5E7EB;
+  --color-border-light: #EEF0F3;
   --color-text: #1F2937;
   --color-text-secondary: #6B7280;
-  --color-warning: #D97706;
-  --color-danger: #B42318;
-  --color-info: #2563EB;
+  --color-text-tertiary: #9CA3AF;
+  --color-text-disabled: #C0C4CC;
+
+  /* ===== 间距体系 ===== */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-base: 16px;
+  --space-lg: 20px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+
+  /* ===== 圆角 ===== */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* ===== 阴影（克制、不浮夸） ===== */
+  --shadow-sm: 0 1px 2px rgba(31, 41, 55, 0.04);
+  --shadow-md: 0 1px 3px rgba(31, 41, 55, 0.06), 0 1px 2px rgba(31, 41, 55, 0.04);
+  --shadow-card: 0 1px 2px rgba(31, 41, 55, 0.05);
+
+  /* ===== 布局 ===== */
   --sidebar-width: 240px;
   --header-height: 56px;
+
+  /* ===== Element Plus 主色覆盖 ===== */
+  --el-color-primary: var(--color-primary);
+  --el-color-primary-light-3: #4A77A0;
+  --el-color-primary-light-5: #7AA0C0;
+  --el-color-primary-light-7: #B3C9DD;
+  --el-color-primary-light-8: #D0DEEC;
+  --el-color-primary-light-9: #EAF2FB;
+  --el-color-primary-dark-2: var(--color-primary-hover);
 }

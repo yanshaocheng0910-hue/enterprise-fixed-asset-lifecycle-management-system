@@ -2,7 +2,7 @@
   <div class="app-container">
     <div class="sidebar">
       <div class="sidebar-logo">
-        <h1>资产管理系统</h1>
+        <h1>固定资产管理系统</h1>
       </div>
       <el-menu
         :default-active="currentRoute"

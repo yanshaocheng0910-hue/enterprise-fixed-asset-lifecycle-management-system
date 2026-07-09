@@ -1,42 +1,61 @@
 <template>
-  <div>
-    <PageHeader title="审计日志" description="集中展示资产操作、审批操作、盘点异常、财务同步等关键行为，支持多维筛选与导出，便于审计追溯。" />
+  <div class="audit-log">
+    <PageHeader title="审计追踪" description="全局操作日志与异常追踪">
+      <template #actions>
+        <el-button type="success" :loading="exporting" @click="handleExport">
+          <el-icon><Download /></el-icon>导出日志
+        </el-button>
+      </template>
+    </PageHeader>
 
     <!-- 顶部统计卡片 -->
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px;">
-      <DataCard label="今日操作" :value="summary.todayOperationCount ?? 0" sub="条" color="#1A73E8" />
-      <DataCard label="资产变更" :value="summary.assetChangeCount ?? 0" sub="条" />
-      <DataCard label="审批操作" :value="summary.approvalOperationCount ?? 0" sub="条" color="#E3742E" />
-      <DataCard label="盘点异常" :value="summary.inventoryAbnormalCount ?? 0" sub="条" color="#D93025" />
-      <DataCard label="财务同步" :value="summary.financeSyncCount ?? 0" sub="条" color="#188038" />
+    <div class="stat-grid stat-grid-5">
+      <DataCard label="今日操作" :value="summary.todayOperationCount ?? 0" unit="条" variant="primary" accent />
+      <DataCard label="资产变更" :value="summary.assetChangeCount ?? 0" unit="条" variant="info" accent />
+      <DataCard label="审批操作" :value="summary.approvalOperationCount ?? 0" unit="条" variant="success" accent />
+      <DataCard label="盘点异常" :value="summary.inventoryAbnormalCount ?? 0" unit="条" variant="warning" accent />
+      <DataCard label="财务同步" :value="summary.financeSyncCount ?? 0" unit="条" variant="default" accent />
     </div>
 
     <!-- 筛选 + 列表 -->
-    <div style="background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:12px;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
-        <span style="font-size:14px;color:var(--color-text-secondary);">日志类型：</span>
-        <el-select v-model="filterForm.logType" placeholder="全部类型" clearable style="width:160px;" @change="handleFilter">
-          <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-        </el-select>
-        <el-input v-model="filterForm.assetCode" placeholder="资产编号" clearable style="width:150px;" @keyup.enter="handleFilter" />
-        <el-input v-model="filterForm.assetName" placeholder="资产名称" clearable style="width:150px;" @keyup.enter="handleFilter" />
-        <el-input v-model="filterForm.operatorName" placeholder="操作人" clearable style="width:130px;" @keyup.enter="handleFilter" />
-        <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          value-format="YYYY-MM-DD"
-          style="width:240px;"
-          @change="handleFilter"
-        />
-        <el-button type="primary" @click="handleFilter">查询</el-button>
-        <el-button @click="handleReset">重置</el-button>
-        <el-button @click="fetchSummary">刷新统计</el-button>
-        <el-button type="success" :loading="exporting" @click="handleExport">
-          <el-icon><Download /></el-icon>导出Excel
-        </el-button>
+    <div class="panel">
+      <div class="filter-bar">
+        <div class="filter-item">
+          <span class="filter-label">日志类型</span>
+          <el-select v-model="filterForm.logType" placeholder="全部类型" clearable style="width:160px;" @change="handleFilter">
+            <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">资产编号</span>
+          <el-input v-model="filterForm.assetCode" placeholder="请输入" clearable style="width:150px;" @keyup.enter="handleFilter" />
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">资产名称</span>
+          <el-input v-model="filterForm.assetName" placeholder="请输入" clearable style="width:150px;" @keyup.enter="handleFilter" />
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">操作人</span>
+          <el-input v-model="filterForm.operatorName" placeholder="请输入" clearable style="width:130px;" @keyup.enter="handleFilter" />
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">日期范围</span>
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            value-format="YYYY-MM-DD"
+            style="width:240px;"
+            @change="handleFilter"
+          />
+        </div>
+        <div class="filter-actions">
+          <el-button type="primary" @click="handleFilter">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
+          <el-button @click="fetchSummary">刷新统计</el-button>
+        </div>
       </div>
 
       <el-table :data="tableData" border stripe v-loading="loading" max-height="600">
@@ -53,7 +72,7 @@
         </el-table-column>
         <el-table-column prop="businessType" label="业务类型" width="110">
           <template #default="{ row }">
-            <el-tag v-if="row.businessType" :type="businessTypeTagType(row.businessType)" size="small" effect="plain">{{ businessTypeLabel(row.businessType) }}</el-tag>
+            <el-tag v-if="row.businessType" :type="businessTypeTagType(row.businessType)" size="small" effect="light">{{ businessTypeLabel(row.businessType) }}</el-tag>
             <span v-else>-</span>
           </template>
         </el-table-column>
@@ -97,7 +116,7 @@
         </template>
       </el-table>
 
-      <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+      <div class="pagination">
         <el-pagination
           v-model:current-page="pageNum"
           v-model:page-size="pageSize"
@@ -304,3 +323,59 @@ onMounted(() => {
   fetchItems()
 })
 </script>
+
+<style scoped>
+.audit-log {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 统计卡片网格 */
+.stat-grid {
+  display: grid;
+  gap: var(--space-base);
+  margin-bottom: var(--space-lg);
+}
+.stat-grid-5 {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+/* 筛选 + 表格面板 */
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-lg);
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-base);
+}
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.filter-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-left: auto;
+}
+
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-base);
+}
+</style>

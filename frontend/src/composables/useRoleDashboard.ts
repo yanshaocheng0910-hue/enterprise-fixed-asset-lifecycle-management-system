@@ -52,28 +52,28 @@ export function useRoleDashboard() {
     const hasPerm = (p?: string) => !p || authStore.hasPermission(p)
 
     if (hasPerm('asset:view')) {
-      common.push({ title: '资产台账', desc: '查看全部资产', icon: 'Files', color: '#173B57', to: '/assets', permission: 'asset:view' })
+      common.push({ title: '资产台账', desc: '查看全部资产', icon: 'Files', color: '#1F4E79', to: '/assets', permission: 'asset:view' })
     }
     if (hasPerm('inventory:view')) {
-      common.push({ title: '盘点任务', desc: '查看盘点进度', icon: 'List', color: '#4F8F7B', to: '/inventory/tasks', permission: 'inventory:view' })
+      common.push({ title: '盘点任务', desc: '查看盘点进度', icon: 'List', color: '#18A058', to: '/inventory/tasks', permission: 'inventory:view' })
     }
     if (hasPerm('approval:todo')) {
-      common.push({ title: '我的待办', desc: '处理审批事项', icon: 'Checked', color: '#D97706', to: '/approval/todo', permission: 'approval:todo' })
+      common.push({ title: '我的待办', desc: '处理审批事项', icon: 'Checked', color: '#F0A020', to: '/approval/todo', permission: 'approval:todo' })
     }
     if (hasPerm('depreciation:view')) {
-      common.push({ title: '折旧报表', desc: '资产价值分析', icon: 'DataLine', color: '#EA580C', to: '/depreciation/report', permission: 'depreciation:view' })
+      common.push({ title: '折旧报表', desc: '资产价值分析', icon: 'DataLine', color: '#2F6BFF', to: '/depreciation/report', permission: 'depreciation:view' })
     }
     if (hasPerm('receive:create')) {
-      common.push({ title: '资产领用', desc: '提交领用申请', icon: 'RefreshRight', color: '#8B9DC3', to: '/lifecycle/receive', permission: 'receive:create' })
+      common.push({ title: '资产领用', desc: '提交领用申请', icon: 'RefreshRight', color: '#6B7280', to: '/lifecycle/receive', permission: 'receive:create' })
     }
     if (hasPerm('repair:create')) {
-      common.push({ title: '维修申请', desc: '提交维修单', icon: 'Tools', color: '#F59E0B', to: '/lifecycle/repair', permission: 'repair:create' })
+      common.push({ title: '维修申请', desc: '提交维修单', icon: 'Tools', color: '#D03050', to: '/lifecycle/repair', permission: 'repair:create' })
     }
     if (hasPerm('finance:view')) {
-      common.push({ title: '财务同步', desc: '查看同步记录', icon: 'Connection', color: '#3B82F6', to: '/finance/sync', permission: 'finance:view' })
+      common.push({ title: '财务同步', desc: '查看同步记录', icon: 'Connection', color: '#2F6BFF', to: '/finance/sync', permission: 'finance:view' })
     }
     if (hasPerm('approval:audit')) {
-      common.push({ title: '审计追踪', desc: '操作日志查询', icon: 'Document', color: '#6366F1', to: '/audit/logs', permission: 'approval:audit' })
+      common.push({ title: '审计追踪', desc: '操作日志查询', icon: 'Document', color: '#6B7280', to: '/audit/logs', permission: 'approval:audit' })
     }
     return common
   })

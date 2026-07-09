@@ -1,14 +1,14 @@
 <template>
   <div>
-    <PageHeader title="我的待办" description="查看和处理待审批事项。" />
+    <PageHeader title="我的待办" description="待处理的审批事项">
+      <template #actions>
+        <el-button type="success" :loading="exporting" @click="handleExport">
+          <el-icon><Download /></el-icon>导出审批记录
+        </el-button>
+      </template>
+    </PageHeader>
 
-    <div style="margin-bottom:12px;">
-      <el-button type="success" :loading="exporting" @click="handleExport">
-        <el-icon><Download /></el-icon>导出审批记录
-      </el-button>
-    </div>
-
-    <div class="table-wrapper">
+    <div class="table-card">
       <el-table :data="tableData" border stripe v-loading="loading" style="width:100%">
         <el-table-column prop="businessType" label="业务类型" width="100">
           <template #default="{ row }">
@@ -34,16 +34,21 @@
             <el-button link type="danger" size="small" @click="openReject(row)">驳回</el-button>
           </template>
         </el-table-column>
+        <template #empty>
+          <el-empty description="暂无待办事项" :image-size="80" />
+        </template>
       </el-table>
-      <el-pagination
-        v-model:current-page="pageNum"
-        v-model:page-size="pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50]"
-        layout="total, sizes, prev, pager, next"
-        @current-change="fetchData"
-        @size-change="fetchData"
-      />
+      <div class="pagination-wrapper">
+        <el-pagination
+          v-model:current-page="pageNum"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
+          @current-change="fetchData"
+          @size-change="fetchData"
+        />
+      </div>
     </div>
 
     <ApprovalDetailDialog v-model:visible="detailVisible" :instance-id="detailInstanceId" />
@@ -199,10 +204,16 @@ onMounted(() => { fetchData() })
 </script>
 
 <style scoped>
-.table-wrapper {
-  background: #fff;
-  padding: 12px;
-  border-radius: 6px;
+.table-card {
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-lg);
+}
+.pagination-wrapper {
+  margin-top: var(--space-lg);
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

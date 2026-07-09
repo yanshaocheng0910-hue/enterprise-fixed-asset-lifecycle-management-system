@@ -1,17 +1,34 @@
 <template>
-  <div>
-    <PageHeader title="财务数据模拟同步" description="网页端财务数据查看与模拟同步记录，用于演示资产折旧和财务数据流转。" />
+  <div class="finance-sync">
+    <PageHeader title="财务数据同步" description="资产折旧数据与财务系统同步记录">
+      <template #actions>
+        <el-button type="primary" :loading="syncing" @click="handleSync">
+          <el-icon><Refresh /></el-icon>手动同步
+        </el-button>
+        <el-button type="success" :loading="exporting" @click="handleExport">
+          <el-icon><Download /></el-icon>导出
+        </el-button>
+      </template>
+    </PageHeader>
 
     <!-- 总览卡片 -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
-      <DataCard label="同步记录总数" :value="total" sub="条" />
-      <DataCard label="最近同步月份" :value="latestRecord?.syncMonth ?? '-'" />
-      <DataCard label="累计同步折旧" :value="formatMoney(totalSyncedDepreciation)" sub="元" />
+    <div class="metric-grid">
+      <DataCard label="同步记录总数" :value="total" sub="条" variant="info" accent />
+      <DataCard label="最近同步月份" :value="latestRecord?.syncMonth ?? '-'" variant="primary" accent />
+      <DataCard label="累计同步折旧" :value="formatMoney(totalSyncedDepreciation)" unit="元" variant="warning" accent />
       <div class="status-card">
         <div class="status-label">最近同步状态</div>
         <div class="status-value">
-          <el-tag v-if="latestRecord?.status" :type="latestRecord.status === 'SUCCESS' ? 'success' : 'danger'" effect="dark" size="large">
-            <el-icon style="margin-right:4px"><CircleCheckFilled v-if="latestRecord.status === 'SUCCESS'" /><CircleCloseFilled v-else /></el-icon>
+          <el-tag
+            v-if="latestRecord?.status"
+            :type="latestRecord.status === 'SUCCESS' ? 'success' : 'danger'"
+            effect="dark"
+            size="large"
+          >
+            <el-icon class="status-icon">
+              <CircleCheckFilled v-if="latestRecord.status === 'SUCCESS'" />
+              <CircleCloseFilled v-else />
+            </el-icon>
             {{ latestRecord.status === 'SUCCESS' ? '同步成功' : '同步失败' }}
           </el-tag>
           <span v-else>-</span>
@@ -20,10 +37,16 @@
     </div>
 
     <!-- 操作区域 -->
-    <div style="background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:16px;margin-bottom:16px;">
-      <el-alert title="模拟同步说明" type="info" show-icon :closable="false" description="本模块为网页端模拟同步记录，用于演示资产折旧数据流转，不会调用外部财务系统。" style="margin-bottom:16px;" />
-      <div style="display:flex;align-items:center;gap:12px;">
-        <span style="font-size:14px;color:var(--color-text-secondary);">同步月份：</span>
+    <div class="panel">
+      <el-alert
+        title="同步说明"
+        type="info"
+        show-icon
+        :closable="false"
+        description="本模块为网页端模拟同步记录，用于演示资产折旧数据流转，不会调用外部财务系统。"
+      />
+      <div class="sync-row">
+        <span class="sync-label">同步月份：</span>
         <el-date-picker
           v-model="syncMonth"
           type="month"
@@ -32,41 +55,40 @@
           value-format="YYYY-MM"
           :disabled-date="disabledDate"
         />
-        <el-button type="primary" :loading="syncing" @click="handleSync">模拟同步折旧数据</el-button>
-        <el-button type="success" :loading="exporting" @click="handleExport">
-          <el-icon><Download /></el-icon>导出记录
-        </el-button>
       </div>
     </div>
 
     <!-- 同步记录表格 -->
-    <div style="background:#fff;border:1px solid var(--color-border);border-radius:6px;padding:12px;">
+    <div class="panel">
       <el-table :data="tableData" border stripe v-loading="loading">
         <el-table-column prop="syncBatchNo" label="批次号" width="180" show-overflow-tooltip />
         <el-table-column prop="syncMonth" label="同步月份" width="110">
           <template #default="{ row }">
-            <span style="font-weight:600;color:var(--color-text);">{{ row.syncMonth }}</span>
+            <span class="month-cell">{{ row.syncMonth }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="assetCount" label="资产数量" width="90" align="center" />
-        <el-table-column label="原值总额" width="130" align="right">
+        <el-table-column label="原值总额" width="130" align="right" class-name="gx-amount">
           <template #default="{ row }">{{ formatMoney(row.totalOriginalValue) }}</template>
         </el-table-column>
-        <el-table-column label="净值总额" width="130" align="right">
+        <el-table-column label="净值总额" width="130" align="right" class-name="gx-amount">
           <template #default="{ row }">{{ formatMoney(row.totalNetValue) }}</template>
         </el-table-column>
-        <el-table-column label="累计折旧" width="130" align="right">
+        <el-table-column label="累计折旧" width="130" align="right" class-name="gx-amount">
           <template #default="{ row }">{{ formatMoney(row.totalAccumulatedDepreciation) }}</template>
         </el-table-column>
-        <el-table-column label="本月折旧额" width="130" align="right">
+        <el-table-column label="本月折旧额" width="130" align="right" class-name="gx-amount">
           <template #default="{ row }">
-            <span style="color:#D97706;font-weight:600;">{{ formatMoney(row.monthlyDepreciation) }}</span>
+            <span class="num-warning">{{ formatMoney(row.monthlyDepreciation) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="110">
           <template #default="{ row }">
             <el-tag :type="row.status === 'SUCCESS' ? 'success' : 'danger'" effect="dark" size="small">
-              <el-icon style="margin-right:2px"><CircleCheckFilled v-if="row.status === 'SUCCESS'" /><CircleCloseFilled v-else /></el-icon>
+              <el-icon class="status-icon">
+                <CircleCheckFilled v-if="row.status === 'SUCCESS'" />
+                <CircleCloseFilled v-else />
+              </el-icon>
               {{ row.status === 'SUCCESS' ? '成功' : '失败' }}
             </el-tag>
           </template>
@@ -83,7 +105,7 @@
         </template>
       </el-table>
 
-      <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+      <div class="pagination-bar">
         <el-pagination
           v-model:current-page="pageNum"
           v-model:page-size="pageSize"
@@ -133,7 +155,7 @@ import {
   getFinanceSyncDetail,
   type FinanceSyncRecordItem
 } from '@/api/finance'
-import { Download, CircleCheckFilled, CircleCloseFilled } from '@element-plus/icons-vue'
+import { Download, CircleCheckFilled, CircleCloseFilled, Refresh } from '@element-plus/icons-vue'
 import { exportFinanceSyncRecords } from '@/api/export'
 
 const syncMonth = ref(getDefaultMonth())
@@ -226,23 +248,71 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.status-card {
-  background: #fff;
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-base);
+  margin-bottom: var(--space-lg);
+}
+.panel {
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 16px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-base);
+  margin-bottom: var(--space-lg);
+}
+.status-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 .status-label {
   font-size: 13px;
-  color: var(--color-text-secondary, #909399);
+  color: var(--color-text-secondary);
+  font-weight: 500;
 }
 .status-value {
   font-size: 20px;
   font-weight: 700;
-  color: var(--color-text, #303133);
+  color: var(--color-text);
+}
+.status-icon {
+  margin-right: 4px;
+  vertical-align: -2px;
+}
+.sync-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-base);
+}
+.sync-label {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.month-cell {
+  font-weight: 700;
+  color: var(--color-text);
+}
+.pagination-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-base);
+}
+.num-warning {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+:deep(.gx-amount .cell) {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  color: var(--color-text);
 }
 </style>

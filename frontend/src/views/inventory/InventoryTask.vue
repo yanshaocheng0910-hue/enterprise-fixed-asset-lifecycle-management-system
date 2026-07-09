@@ -1,81 +1,95 @@
 <template>
-  <div>
-    <PageHeader title="盘点任务" description="创建和管理资产盘点任务，支持按部门、地点、全部资产进行盘点核对。" />
+  <div class="inventory-task">
+    <PageHeader title="盘点管理" description="资产盘点任务与进度跟踪">
+      <template #actions>
+        <el-button type="primary" @click="openCreateDialog">
+          <el-icon><Plus /></el-icon>新建任务
+        </el-button>
+        <el-button type="success" :loading="exporting" @click="handleExportTasks">
+          <el-icon><Download /></el-icon>导出
+        </el-button>
+      </template>
+    </PageHeader>
 
     <!-- 筛选区 -->
     <div class="filter-bar">
-      <el-select v-model="filterStatus" placeholder="状态筛选" clearable style="width: 160px" @change="loadTasks">
+      <span class="filter-label">任务状态：</span>
+      <el-select v-model="filterStatus" placeholder="全部状态" clearable style="width: 180px" @change="loadTasks">
         <el-option label="进行中" value="IN_PROGRESS" />
         <el-option label="已完成" value="COMPLETED" />
       </el-select>
-      <el-button type="primary" @click="openCreateDialog">新建盘点任务</el-button>
-      <el-button type="success" :loading="exporting" @click="handleExportTasks">
-        <el-icon><Download /></el-icon>导出任务列表
-      </el-button>
     </div>
 
     <!-- 任务列表 -->
-    <el-table :data="taskList" v-loading="loading" border style="width: 100%">
-      <el-table-column prop="taskCode" label="任务编号" width="150" />
-      <el-table-column prop="taskName" label="任务名称" min-width="150" />
-      <el-table-column label="范围类型" width="120">
-        <template #default="{ row }">{{ scopeTypeText(row.scopeType) }}</template>
-      </el-table-column>
-      <el-table-column label="范围描述" min-width="140">
-        <template #default="{ row }">{{ scopeDescription(row) }}</template>
-      </el-table-column>
-      <el-table-column label="状态" width="110">
-        <template #default="{ row }">
-          <el-tag :type="row.status === 'COMPLETED' ? 'success' : 'warning'" effect="dark">
-            <el-icon style="margin-right:2px"><CircleCheck v-if="row.status === 'COMPLETED'" /><Loading v-else /></el-icon>
-            {{ statusText(row.status) }}
-          </el-tag>
+    <div class="panel">
+      <el-table :data="taskList" v-loading="loading" border stripe style="width: 100%">
+        <el-table-column prop="taskCode" label="任务编号" width="150" />
+        <el-table-column prop="taskName" label="任务名称" min-width="150" />
+        <el-table-column label="范围类型" width="120">
+          <template #default="{ row }">{{ scopeTypeText(row.scopeType) }}</template>
+        </el-table-column>
+        <el-table-column label="范围描述" min-width="140">
+          <template #default="{ row }">{{ scopeDescription(row) }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="110">
+          <template #default="{ row }">
+            <el-tag
+              :type="row.status === 'COMPLETED' ? 'success' : row.status === 'IN_PROGRESS' ? 'warning' : 'info'"
+              effect="dark"
+            >
+              <el-icon class="status-icon">
+                <CircleCheck v-if="row.status === 'COMPLETED'" />
+                <Loading v-else />
+              </el-icon>
+              {{ statusText(row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="盘点进度" width="180">
+          <template #default="{ row }">
+            <div class="progress-cell">
+              <el-progress
+                :percentage="progressPercent(row)"
+                :status="row.status === 'COMPLETED' ? 'success' : ''"
+                :stroke-width="14"
+                :text-inside="true"
+              />
+              <span class="progress-text">{{ row.completedRecords }} / {{ row.totalRecords }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="startTime" label="开始时间" width="170" />
+        <el-table-column label="结束时间" width="170">
+          <template #default="{ row }">{{ row.endTime || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="220" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="openRecordsDialog(row)">查看明细</el-button>
+            <el-button
+              size="small"
+              type="success"
+              v-if="row.status === 'IN_PROGRESS'"
+              @click="handleComplete(row)"
+            >完成任务</el-button>
+          </template>
+        </el-table-column>
+        <template #empty>
+          <el-empty description="暂无盘点任务" />
         </template>
-      </el-table-column>
-      <el-table-column label="盘点进度" width="180">
-        <template #default="{ row }">
-          <div class="progress-cell">
-            <el-progress
-              :percentage="progressPercent(row)"
-              :status="row.status === 'COMPLETED' ? 'success' : ''"
-              :stroke-width="14"
-              :text-inside="true"
-            />
-            <span class="progress-text">{{ row.completedRecords }} / {{ row.totalRecords }}</span>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column prop="startTime" label="开始时间" width="170" />
-      <el-table-column prop="endTime" label="结束时间" width="170">
-        <template #default="{ row }">{{ row.endTime || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="操作" width="220" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="openRecordsDialog(row)">查看明细</el-button>
-          <el-button
-            size="small"
-            type="success"
-            v-if="row.status === 'IN_PROGRESS'"
-            @click="handleComplete(row)"
-          >完成任务</el-button>
-        </template>
-      </el-table-column>
-      <template #empty>
-        <el-empty description="暂无盘点任务" />
-      </template>
-    </el-table>
+      </el-table>
 
-    <!-- 分页 -->
-    <div class="pagination-bar">
-      <el-pagination
-        v-model:current-page="pageNum"
-        v-model:page-size="pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50]"
-        layout="total, sizes, prev, pager, next"
-        @size-change="loadTasks"
-        @current-change="loadTasks"
-      />
+      <!-- 分页 -->
+      <div class="pagination-bar">
+        <el-pagination
+          v-model:current-page="pageNum"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
+          @size-change="loadTasks"
+          @current-change="loadTasks"
+        />
+      </div>
     </div>
 
     <!-- 新建任务弹窗 -->
@@ -237,7 +251,7 @@ import {
   type InventoryTaskItem,
   type InventoryRecordItem
 } from '@/api/inventory'
-import { Download, CircleCheck, Loading } from '@element-plus/icons-vue'
+import { Download, CircleCheck, Loading, Plus } from '@element-plus/icons-vue'
 import { exportInventoryTasks, exportInventoryTaskRecords } from '@/api/export'
 import { useMasterDataOptions } from '@/composables/useMasterDataOptions'
 
@@ -498,13 +512,29 @@ loadMasterData()
 <style scoped>
 .filter-bar {
   display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-base);
+}
+.filter-label {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-base);
 }
 .pagination-bar {
-  margin-top: 16px;
+  margin-top: var(--space-base);
   display: flex;
   justify-content: flex-end;
+}
+.status-icon {
+  margin-right: 4px;
+  vertical-align: -2px;
 }
 .progress-cell {
   display: flex;
@@ -516,7 +546,7 @@ loadMasterData()
 }
 .progress-text {
   font-size: 11px;
-  color: var(--color-text-secondary, #909399);
+  color: var(--color-text-secondary);
   text-align: right;
 }
 </style>
