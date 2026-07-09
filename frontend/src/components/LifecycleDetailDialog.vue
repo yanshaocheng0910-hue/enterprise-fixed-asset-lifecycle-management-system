@@ -23,6 +23,12 @@
         <el-descriptions-item label="备注" :span="2">{{ data.remark || '-' }}</el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ data.createdAt || '-' }}</el-descriptions-item>
       </el-descriptions>
+      <ApprovalProgress
+        v-if="businessType && data && data.id"
+        :business-type="businessType"
+        :business-id="data.id"
+        :status="data.status"
+      />
     </template>
     <template #footer>
       <el-button @click="$emit('update:visible', false)">关闭</el-button>
@@ -32,11 +38,13 @@
 
 <script setup lang="ts">
 import { STATUS_MAP } from '@/utils/dict'
+import ApprovalProgress from '@/components/approval/ApprovalProgress.vue'
 
 defineProps<{
   visible: boolean
   data: any
   title: string
+  businessType?: string
 }>()
 
 defineEmits<{

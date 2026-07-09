@@ -92,7 +92,7 @@
       </template>
     </el-dialog>
 
-    <LifecycleDetailDialog v-model:visible="detailVisible" :data="detailData" title="调拨详情" />
+    <LifecycleDetailDialog v-model:visible="detailVisible" :data="detailData" title="调拨详情" business-type="TRANSFER" />
   </div>
 </template>
 

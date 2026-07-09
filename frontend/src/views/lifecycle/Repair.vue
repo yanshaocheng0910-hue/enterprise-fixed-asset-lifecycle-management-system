@@ -124,7 +124,7 @@
       </template>
     </el-dialog>
 
-    <LifecycleDetailDialog v-model:visible="detailVisible" :data="detailData" title="维修详情" />
+    <LifecycleDetailDialog v-model:visible="detailVisible" :data="detailData" title="维修详情" business-type="REPAIR" />
   </div>
 </template>
 

@@ -91,7 +91,7 @@
       </template>
     </el-dialog>
 
-    <LifecycleDetailDialog v-model:visible="detailVisible" :data="detailData" title="领用详情" />
+    <LifecycleDetailDialog v-model:visible="detailVisible" :data="detailData" title="领用详情" business-type="RECEIVE" />
   </div>
 </template>
 
