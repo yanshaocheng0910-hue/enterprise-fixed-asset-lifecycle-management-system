@@ -62,6 +62,10 @@
           <el-menu-item index="/approval/todo" v-if="authStore.hasPermission('approval:todo')">我的待办</el-menu-item>
           <el-menu-item index="/approval/done" v-if="authStore.hasPermission('approval:done')">我的已办</el-menu-item>
         </el-sub-menu>
+        <el-menu-item index="/audit/logs" v-if="authStore.hasPermission('approval:audit')">
+          <el-icon><Document /></el-icon>
+          <span>审计追踪</span>
+        </el-menu-item>
         <el-sub-menu index="system" v-if="authStore.hasPermission('user:view') || authStore.hasPermission('role:view')">
           <template #title>
             <el-icon><Setting /></el-icon>

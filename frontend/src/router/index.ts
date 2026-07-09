@@ -137,6 +137,12 @@ const router = createRouter({
           name: 'ApprovalDone',
           component: () => import('@/views/approval/ApprovalDone.vue'),
           meta: { title: '我的已办', permission: 'approval:done' }
+        },
+        {
+          path: 'audit/logs',
+          name: 'AuditLog',
+          component: () => import('@/views/audit/AuditLog.vue'),
+          meta: { title: '审计日志', permission: 'approval:audit' }
         }
       ]
     },

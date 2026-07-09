@@ -11,8 +11,12 @@ import com.example.asset.asset.service.AssetService;
 import com.example.asset.asset.service.AssetTimelineService;
 import com.example.asset.asset.vo.AssetPageVO;
 import com.example.asset.asset.vo.AssetTimelineEventVO;
+import com.example.asset.audit.dto.AuditLogQueryRequest;
+import com.example.asset.audit.service.AuditService;
+import com.example.asset.audit.vo.AuditLogVO;
 import com.example.asset.common.PageResult;
 import com.example.asset.common.excel.ExcelExportUtil;
+import com.example.asset.permission.annotation.RequirePermission;
 import com.example.asset.depreciation.service.DepreciationReportService;
 import com.example.asset.depreciation.vo.DepreciationSummaryVO;
 import com.example.asset.depreciation.vo.MonthlyDepreciationItemVO;
@@ -46,6 +50,7 @@ public class ExportController {
     private final FinanceService financeService;
     private final WarningService warningService;
     private final AiAnalysisService aiAnalysisService;
+    private final AuditService auditService;
 
     public ExportController(AssetService assetService,
                             AssetTimelineService assetTimelineService,
@@ -54,7 +59,8 @@ public class ExportController {
                             DepreciationReportService depreciationReportService,
                             FinanceService financeService,
                             WarningService warningService,
-                            AiAnalysisService aiAnalysisService) {
+                            AiAnalysisService aiAnalysisService,
+                            AuditService auditService) {
         this.assetService = assetService;
         this.assetTimelineService = assetTimelineService;
         this.approvalService = approvalService;
@@ -63,6 +69,7 @@ public class ExportController {
         this.financeService = financeService;
         this.warningService = warningService;
         this.aiAnalysisService = aiAnalysisService;
+        this.auditService = auditService;
     }
 
     // ===== 1. 导出资产台账 =====
@@ -339,5 +346,48 @@ public class ExportController {
         ExcelExportUtil.writeRow(sheet, row++, new Object[]{"建议概览", report.getSuggestionOverview()});
 
         ExcelExportUtil.writeToResponse(response, "AI分析报告.xlsx", wb);
+    }
+
+    // ===== 10. 导出审计日志 =====
+    @GetMapping("/audit/logs")
+    @RequirePermission("approval:audit")
+    public void exportAuditLogs(HttpServletResponse response,
+                                @RequestParam(required = false) String logType,
+                                @RequestParam(required = false) String assetCode,
+                                @RequestParam(required = false) String assetName,
+                                @RequestParam(required = false) String operatorName,
+                                @RequestParam(required = false) String startDate,
+                                @RequestParam(required = false) String endDate) {
+        AuditLogQueryRequest req = new AuditLogQueryRequest();
+        req.setLogType(logType);
+        req.setAssetCode(assetCode);
+        req.setAssetName(assetName);
+        req.setOperatorName(operatorName);
+        req.setStartDate(startDate);
+        req.setEndDate(endDate);
+        req.setPageNum(1L);
+        req.setPageSize(10000L);
+
+        List<AuditLogVO> list = auditService.listForExport(req);
+
+        String[] headers = {"日志类型", "资产编号", "资产名称", "业务类型", "操作", "变更前状态", "变更后状态", "操作人", "操作时间", "来源", "备注"};
+        int[] widths = {12, 18, 22, 14, 18, 14, 14, 14, 20, 12, 28};
+
+        SXSSFWorkbook wb = ExcelExportUtil.createWorkbook();
+        Sheet sheet = wb.createSheet("审计日志");
+        ExcelExportUtil.setColumnWidths(sheet, widths);
+        ExcelExportUtil.writeTitle(sheet, "审计日志", headers.length);
+        ExcelExportUtil.writeHeader(sheet, headers, 1);
+        ExcelExportUtil.freezeHeader(sheet, 1);
+
+        for (int i = 0; i < list.size(); i++) {
+            AuditLogVO a = list.get(i);
+            ExcelExportUtil.writeRow(sheet, i + 2, new Object[]{
+                    a.getLogTypeName(), a.getAssetCode(), a.getAssetName(), a.getBusinessType(),
+                    a.getOperation(), a.getBeforeStatus(), a.getAfterStatus(),
+                    a.getOperatorName(), a.getOperationTime(), a.getSource(), a.getRemark()
+            });
+        }
+        ExcelExportUtil.writeToResponse(response, "审计日志.xlsx", wb);
     }
 }
