@@ -4,6 +4,7 @@ import com.example.asset.asset.entity.AssetCategory;
 import com.example.asset.asset.service.AssetCategoryService;
 import com.example.asset.asset.vo.AssetCategoryTreeVO;
 import com.example.asset.common.Result;
+import com.example.asset.permission.annotation.RequirePermission;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,11 +22,13 @@ public class AssetCategoryController {
     }
 
     @GetMapping("/list")
+    @RequirePermission("category:view")
     public Result<List<AssetCategory>> list() {
         return Result.success(assetCategoryService.list());
     }
 
     @GetMapping("/tree")
+    @RequirePermission("category:view")
     public Result<List<AssetCategoryTreeVO>> tree() {
         return Result.success(assetCategoryService.tree());
     }

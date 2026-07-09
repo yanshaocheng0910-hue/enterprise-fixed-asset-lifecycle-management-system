@@ -1,6 +1,7 @@
 package com.example.asset.user.controller;
 
 import com.example.asset.common.Result;
+import com.example.asset.permission.annotation.RequirePermission;
 import com.example.asset.user.mapper.SysPermissionMapper;
 import com.example.asset.user.service.RoleService;
 import com.example.asset.user.vo.PermissionTreeVO;
@@ -24,6 +25,7 @@ public class PermissionController {
     }
 
     @GetMapping("/tree")
+    @RequirePermission("role:view")
     public Result<List<PermissionTreeVO>> tree() {
         return Result.success(roleService.permissionTree());
     }

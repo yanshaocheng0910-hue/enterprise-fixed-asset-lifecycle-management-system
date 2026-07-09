@@ -34,6 +34,7 @@ public class RoleController {
     }
 
     @GetMapping("/all")
+    @RequirePermission("role:view")
     public Result<List<SysRole>> all() {
         return Result.success(roleService.all());
     }

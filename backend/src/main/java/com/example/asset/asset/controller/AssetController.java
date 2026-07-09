@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.example.asset.permission.annotation.RequirePermission;
 
 import java.util.List;
 
@@ -34,32 +35,38 @@ public class AssetController {
     }
 
     @GetMapping("/page")
+    @RequirePermission("asset:view")
     public Result<PageResult<AssetPageVO>> page(@Valid AssetQueryRequest query) {
         return Result.success(assetService.page(query));
     }
 
     @GetMapping("/status-options")
+    @RequirePermission("asset:view")
     public Result<List<StatusOptionVO>> statusOptions() {
         return Result.success(assetService.statusOptions());
     }
 
     @GetMapping("/{id}")
+    @RequirePermission("asset:view")
     public Result<AssetDetailVO> detail(@PathVariable Long id) {
         return Result.success(assetService.detail(id));
     }
 
     @PostMapping
+    @RequirePermission("asset:create")
     public Result<Long> create(@Valid @RequestBody AssetCreateRequest request) {
         return Result.success(assetService.create(request));
     }
 
     @PutMapping("/{id}")
+    @RequirePermission("asset:edit")
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody AssetUpdateRequest request) {
         assetService.update(id, request);
         return Result.success();
     }
 
     @DeleteMapping("/{id}")
+    @RequirePermission("asset:delete")
     public Result<Void> delete(@PathVariable Long id) {
         assetService.delete(id);
         return Result.success();

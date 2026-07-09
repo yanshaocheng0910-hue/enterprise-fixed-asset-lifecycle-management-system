@@ -111,6 +111,7 @@ public class ExportController {
 
     // ===== 2. 导出资产时间线 =====
     @GetMapping("/assets/{assetId}/timeline")
+    @RequirePermission("asset:view")
     public void exportAssetTimeline(HttpServletResponse response, @PathVariable Long assetId) {
         List<AssetTimelineEventVO> list = assetTimelineService.getTimeline(assetId, new AssetTimelineQueryRequest());
 
@@ -167,6 +168,7 @@ public class ExportController {
 
     // ===== 4. 导出盘点任务 =====
     @GetMapping("/inventory/tasks")
+    @RequirePermission("inventory:view")
     public void exportInventoryTasks(HttpServletResponse response) {
         InventoryTaskQueryRequest query = new InventoryTaskQueryRequest();
         query.setPageNum(1L);
@@ -225,6 +227,7 @@ public class ExportController {
 
     // ===== 6. 导出折旧报表 =====
     @GetMapping("/depreciation/report")
+    @RequirePermission("depreciation:view")
     public void exportDepreciationReport(HttpServletResponse response,
                                          @RequestParam(required = false) String month) {
         if (month == null || month.isEmpty()) {
@@ -269,6 +272,7 @@ public class ExportController {
 
     // ===== 7. 导出财务同步记录 =====
     @GetMapping("/finance/sync/records")
+    @RequirePermission("finance:view")
     public void exportFinanceSyncRecords(HttpServletResponse response) {
         PageResult<FinanceSyncRecordVO> pageResult = financeService.syncRecords(1L, 10000L);
         List<FinanceSyncRecordVO> list = pageResult.getRecords();
@@ -297,6 +301,7 @@ public class ExportController {
 
     // ===== 8. 导出预警列表 =====
     @GetMapping("/warnings")
+    @RequirePermission("asset:view")
     public void exportWarnings(HttpServletResponse response,
                                @RequestParam(required = false) String type,
                                @RequestParam(required = false) String level) {
@@ -326,6 +331,7 @@ public class ExportController {
 
     // ===== 9. 导出 AI 分析报告 =====
     @GetMapping("/ai/report")
+    @RequirePermission("ai:view")
     public void exportAiReport(HttpServletResponse response) {
         AiReportVO report = aiAnalysisService.getReport();
 
