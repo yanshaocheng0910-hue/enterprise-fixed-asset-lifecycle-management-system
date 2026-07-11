@@ -62,9 +62,21 @@
         <el-table-column label="结束时间" width="170">
           <template #default="{ row }">{{ row.endTime || '-' }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="openRecordsDialog(row)">查看明细</el-button>
+            <el-button
+              size="small"
+              type="warning"
+              v-if="row.status === 'PENDING'"
+              @click="handleStart(row)"
+            >启动</el-button>
+            <el-button
+              size="small"
+              type="primary"
+              v-if="row.status === 'IN_PROGRESS'"
+              @click="goToExecute(row)"
+            >执行盘点</el-button>
             <el-button
               size="small"
               type="success"
@@ -240,6 +252,7 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import {
@@ -248,6 +261,7 @@ import {
   getInventoryRecords,
   updateInventoryRecord,
   completeInventoryTask,
+  startInventoryTask,
   type InventoryTaskItem,
   type InventoryRecordItem
 } from '@/api/inventory'
@@ -256,6 +270,22 @@ import { exportInventoryTasks, exportInventoryTaskRecords } from '@/api/export'
 import { useMasterDataOptions } from '@/composables/useMasterDataOptions'
 
 const { departmentOptions, locationOptions, keeperOptions, loadAll: loadMasterData } = useMasterDataOptions()
+
+const router = useRouter()
+
+function goToExecute(row: any) {
+  router.push(`/inventory/tasks/${row.id}/execute`)
+}
+
+async function handleStart(row: any) {
+  try {
+    const r = await startInventoryTask(row.id)
+    if (r.code === 200) {
+      ElMessage.success('任务已启动')
+      loadTasks()
+    }
+  } catch {}
+}
 
 // ===== 任务列表 =====
 const loading = ref(false)

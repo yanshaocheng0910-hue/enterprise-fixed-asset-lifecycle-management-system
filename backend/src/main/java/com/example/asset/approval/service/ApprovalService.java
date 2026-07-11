@@ -241,9 +241,58 @@ public class ApprovalService {
 
         for (ApprovalTodoVO vo : result.getRecords()) {
             vo.setApplicantName(getUserNameById(vo.getStartedBy()));
+            // 填充资产信息
+            fillAssetInfo(vo);
         }
 
         return PageResult.of(result);
+    }
+
+    private void fillAssetInfo(ApprovalTodoVO vo) {
+        try {
+            switch (vo.getBusinessType()) {
+                case "RECEIVE":
+                    com.example.asset.lifecycle.vo.ReceiveOrderPageVO r = lifecycleService.receiveDetail(vo.getBusinessId());
+                    if (r != null) {
+                        vo.setOrderCode(r.getOrderCode());
+                        vo.setAssetCode(r.getAssetCode());
+                        vo.setAssetName(r.getAssetName());
+                        vo.setSummary("领用人:" + (r.getReceiver() != null ? r.getReceiver() : "-"));
+                    }
+                    break;
+                case "TRANSFER":
+                    com.example.asset.lifecycle.vo.TransferOrderPageVO t = lifecycleService.transferDetail(vo.getBusinessId());
+                    if (t != null) {
+                        vo.setOrderCode(t.getOrderCode());
+                        vo.setAssetCode(t.getAssetCode());
+                        vo.setAssetName(t.getAssetName());
+                        vo.setSummary((t.getFromDepartment() != null ? t.getFromDepartment() : "?") + " → " + (t.getToDepartment() != null ? t.getToDepartment() : "?"));
+                    }
+                    break;
+                case "REPAIR":
+                    com.example.asset.lifecycle.vo.RepairOrderPageVO rp = lifecycleService.repairDetail(vo.getBusinessId());
+                    if (rp != null) {
+                        vo.setOrderCode(rp.getOrderCode());
+                        vo.setAssetCode(rp.getAssetCode());
+                        vo.setAssetName(rp.getAssetName());
+                        vo.setSummary(rp.getFaultDescription() != null ? rp.getFaultDescription() : "维修");
+                    }
+                    break;
+                case "SCRAP":
+                    com.example.asset.lifecycle.vo.ScrapOrderPageVO sc = lifecycleService.scrapDetail(vo.getBusinessId());
+                    if (sc != null) {
+                        vo.setOrderCode(sc.getOrderCode());
+                        vo.setAssetCode(sc.getAssetCode());
+                        vo.setAssetName(sc.getAssetName());
+                        vo.setSummary(sc.getScrapReason() != null ? sc.getScrapReason() : "报废");
+                    }
+                    break;
+                default:
+                    break;
+            }
+        } catch (Exception e) {
+            // 忽略填充错误，不影响主流程
+        }
     }
 
     // ======================== Done Page ========================

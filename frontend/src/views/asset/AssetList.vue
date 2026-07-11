@@ -86,13 +86,14 @@
         <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="goDetail(row.id)">查看</el-button>
-            <el-dropdown trigger="click" @command="(cmd: string) => { if (cmd === 'edit') openEdit(row); else if (cmd === 'delete') handleDelete(row) }">
+            <el-dropdown trigger="click" @command="(cmd: string) => { if (cmd === 'edit') openEdit(row); else if (cmd === 'delete') handleDelete(row); else if (cmd === 'qr') generateQrCode(row) }">
               <el-button link type="primary" size="small">
                 更多<el-icon class="el-icon--right"><ArrowDown /></el-icon>
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="edit">编辑</el-dropdown-item>
+                  <el-dropdown-item command="qr">生成二维码</el-dropdown-item>
                   <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -208,12 +209,30 @@
         <el-button type="primary" :loading="submitLoading" @click="submitForm">确认</el-button>
       </template>
     </el-dialog>
+
+    <!-- 二维码弹窗 -->
+    <el-dialog v-model="qrDialogVisible" title="资产二维码" width="360px" align-center>
+      <div v-if="qrCurrentAsset" style="text-align:center;">
+        <div style="margin-bottom:12px;">
+          <div style="font-size:16px;font-weight:600;">{{ qrCurrentAsset.assetName }}</div>
+          <div style="color:var(--color-text-secondary);font-size:13px;">{{ qrCurrentAsset.assetCode }}</div>
+        </div>
+        <img v-if="qrDataUrl" :src="qrDataUrl" alt="QR Code" style="width:256px;height:256px;border:1px solid var(--color-border);border-radius:6px;" />
+        <div style="margin-top:12px;color:var(--color-text-secondary);font-size:12px;">
+          扫描二维码可快速获取资产信息，用于盘点识别
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="qrDialogVisible = false">关闭</el-button>
+        <el-button type="primary" @click="downloadQrCode">下载二维码</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import StatusTag from '@/components/StatusTag.vue'
@@ -222,10 +241,12 @@ import { Download, ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 import { exportAssets } from '@/api/export'
 import { formatMoney } from '@/utils/format'
 import { useMasterDataOptions } from '@/composables/useMasterDataOptions'
+import QRCode from 'qrcode'
 
 const { departmentOptions, locationOptions, keeperOptions, loadAll: loadMasterData } = useMasterDataOptions()
 
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
 const submitLoading = ref(false)
 const exporting = ref(false)
@@ -282,6 +303,33 @@ const formRules = {
   residualRate: [{ required: true, message: '请输入残值率', trigger: 'blur' }],
   department: [{ required: true, message: '请输入所属部门', trigger: 'blur' }],
   keeper: [{ required: true, message: '请输入使用人', trigger: 'blur' }]
+}
+
+// 二维码
+const qrDialogVisible = ref(false)
+const qrDataUrl = ref('')
+const qrCurrentAsset = ref<any>(null)
+
+async function generateQrCode(row: any) {
+  qrCurrentAsset.value = row
+  const payload = JSON.stringify({
+    id: row.id,
+    code: row.assetCode,
+    name: row.assetName,
+    dept: row.department,
+    keeper: row.keeper,
+    location: row.location
+  })
+  qrDataUrl.value = await QRCode.toDataURL(payload, { width: 256, margin: 2 })
+  qrDialogVisible.value = true
+}
+
+function downloadQrCode() {
+  if (!qrDataUrl.value || !qrCurrentAsset.value) return
+  const link = document.createElement('a')
+  link.href = qrDataUrl.value
+  link.download = `QR_${qrCurrentAsset.value.assetCode}.png`
+  link.click()
 }
 
 watch(dateRange, (val) => {
@@ -398,7 +446,12 @@ function handleDelete(row: any) {
 
 function goDetail(id: number) { router.push(`/assets/${id}`) }
 
-onMounted(() => { fetchData(); fetchOptions(); loadMasterData() })
+onMounted(() => {
+  if (route.query.status) {
+    query.status = route.query.status as string
+  }
+  fetchData(); fetchOptions(); loadMasterData()
+})
 </script>
 
 <style scoped>

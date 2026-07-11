@@ -41,10 +41,18 @@
 
     <!-- 状态统计卡 -->
     <div v-if="showStatusStats" class="stats-grid stats-grid-status">
-      <DataCard label="使用中" :value="stats.inUseCount ?? 0" unit="件" variant="success" sub="正常使用" />
-      <DataCard label="闲置" :value="stats.idleCount ?? 0" unit="件" variant="info" sub="未投入使用" />
-      <DataCard label="维修中" :value="stats.repairingCount ?? 0" unit="件" variant="warning" sub="待修复" />
-      <DataCard label="待报废" :value="stats.waitingScrapCount ?? 0" unit="件" variant="danger" sub="待处置" />
+      <div class="clickable-card" @click="goAssetList('IN_USE')">
+        <DataCard label="使用中" :value="stats.inUseCount ?? 0" unit="件" variant="success" sub="正常使用" />
+      </div>
+      <div class="clickable-card" @click="goAssetList('IDLE')">
+        <DataCard label="闲置" :value="stats.idleCount ?? 0" unit="件" variant="info" sub="未投入使用" />
+      </div>
+      <div class="clickable-card" @click="goAssetList('REPAIRING')">
+        <DataCard label="维修中" :value="stats.repairingCount ?? 0" unit="件" variant="warning" sub="待修复" />
+      </div>
+      <div class="clickable-card" @click="goAssetList('WAITING_SCRAP')">
+        <DataCard label="待报废" :value="stats.waitingScrapCount ?? 0" unit="件" variant="danger" sub="待处置" />
+      </div>
     </div>
 
     <!-- 图表区 -->
@@ -206,6 +214,11 @@ import { Files, List, Checked, DataLine, RefreshRight, Connection, Document, Too
 use([CanvasRenderer, PieChart, BarChart, LineChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
 const router = useRouter()
+
+function goAssetList(status: string) {
+  router.push({ path: '/assets', query: { status } })
+}
+
 const authStore = useAuthStore()
 const userInfo = computed(() => authStore.userInfo)
 const userName = computed(() => userInfo.value?.realName || userInfo.value?.username || '用户')
@@ -418,6 +431,15 @@ onMounted(() => {
 }
 .stats-grid-status {
   margin-bottom: var(--space-lg);
+}
+.clickable-card {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border-radius: 8px;
+}
+.clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* ===== 图表区 ===== */

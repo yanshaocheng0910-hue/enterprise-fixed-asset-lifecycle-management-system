@@ -17,4 +17,9 @@ public class ApprovalTodoVO {
     private String applicantName;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startedAt;
+    // 资产信息（填充字段）
+    private String orderCode;
+    private String assetCode;
+    private String assetName;
+    private String summary;
 }

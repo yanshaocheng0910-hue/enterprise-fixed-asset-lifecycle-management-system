@@ -10,10 +10,13 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
+    "@zxing/library": "^0.23.0",
     "axios": "^1.7.2",
     "echarts": "^5.5.0",
     "element-plus": "^2.7.6",
     "pinia": "^2.1.7",
+    "qrcode": "^1.5.4",
+    "tesseract.js": "^7.0.0",
     "vue": "^3.5.39",
     "vue-echarts": "^6.7.3",
     "vue-router": "^4.4.0"

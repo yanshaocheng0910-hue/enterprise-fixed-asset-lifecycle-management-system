@@ -33,6 +33,26 @@ export function getCategoryTree() {
   return request.get<any, { code: number; message: string; data: AssetCategoryTree[] }>('/asset-categories/tree')
 }
 
+export interface AssetCategoryRequest {
+  categoryCode: string
+  categoryName: string
+  parentId?: number
+  depreciationYears: number
+  remark?: string
+}
+
+export function createCategory(data: AssetCategoryRequest) {
+  return request.post<any, { code: number; message: string; data: number }>('/asset-categories', data)
+}
+
+export function updateCategory(id: number, data: AssetCategoryRequest) {
+  return request.put<any, { code: number; message: string; data: null }>(`/asset-categories/${id}`, data)
+}
+
+export function deleteCategory(id: number) {
+  return request.delete<any, { code: number; message: string; data: null }>(`/asset-categories/${id}`)
+}
+
 export interface AssetTimelineEvent {
   id: string
   assetId: number | null

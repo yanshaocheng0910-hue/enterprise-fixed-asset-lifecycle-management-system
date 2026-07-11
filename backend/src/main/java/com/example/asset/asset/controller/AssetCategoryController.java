@@ -1,13 +1,14 @@
 package com.example.asset.asset.controller;
 
+import com.example.asset.asset.dto.AssetCategoryCreateRequest;
+import com.example.asset.asset.dto.AssetCategoryUpdateRequest;
 import com.example.asset.asset.entity.AssetCategory;
 import com.example.asset.asset.service.AssetCategoryService;
 import com.example.asset.asset.vo.AssetCategoryTreeVO;
 import com.example.asset.common.Result;
 import com.example.asset.permission.annotation.RequirePermission;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -31,5 +32,25 @@ public class AssetCategoryController {
     @RequirePermission("category:view")
     public Result<List<AssetCategoryTreeVO>> tree() {
         return Result.success(assetCategoryService.tree());
+    }
+
+    @PostMapping
+    @RequirePermission("category:create")
+    public Result<Long> create(@Valid @RequestBody AssetCategoryCreateRequest req) {
+        return Result.success(assetCategoryService.create(req));
+    }
+
+    @PutMapping("/{id}")
+    @RequirePermission("category:edit")
+    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody AssetCategoryUpdateRequest req) {
+        assetCategoryService.update(id, req);
+        return Result.success();
+    }
+
+    @DeleteMapping("/{id}")
+    @RequirePermission("category:delete")
+    public Result<Void> delete(@PathVariable Long id) {
+        assetCategoryService.delete(id);
+        return Result.success();
     }
 }

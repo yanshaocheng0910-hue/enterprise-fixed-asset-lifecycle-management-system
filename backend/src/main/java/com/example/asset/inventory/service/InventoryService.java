@@ -235,7 +235,7 @@ public class InventoryService {
 
         LambdaQueryWrapper<InventoryRecord> wrapper = new LambdaQueryWrapper<InventoryRecord>()
                 .eq(InventoryRecord::getTaskId, taskId)
-                .eq(InventoryRecord::getResult, "PENDING");
+                .and(w -> w.isNull(InventoryRecord::getResult).or().eq(InventoryRecord::getResult, "PENDING"));
         List<InventoryRecord> pending = inventoryRecordMapper.selectList(wrapper);
 
         for (InventoryRecord r : pending) {

@@ -10,22 +10,19 @@
 
     <div class="table-card">
       <el-table :data="tableData" border stripe v-loading="loading" style="width:100%">
-        <el-table-column prop="businessType" label="业务类型" width="100">
+        <el-table-column prop="businessType" label="业务类型" width="90">
           <template #default="{ row }">
             <el-tag :type="businessTypeTagType(row.businessType)" size="small" effect="light">{{ businessTypeLabel(row.businessType) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="businessId" label="单据ID" width="80" />
-        <el-table-column prop="flowName" label="流程名称" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="orderCode" label="单据编号" width="130" show-overflow-tooltip />
+        <el-table-column prop="assetCode" label="资产编号" width="140" show-overflow-tooltip />
+        <el-table-column prop="assetName" label="资产名称" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="summary" label="摘要" min-width="160" show-overflow-tooltip />
         <el-table-column prop="nodeName" label="当前节点" width="120" show-overflow-tooltip />
         <el-table-column prop="applicantName" label="申请人" width="100" />
         <el-table-column prop="startedAt" label="提交时间" width="160">
           <template #default="{ row }">{{ row.startedAt || '-' }}</template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="80">
-          <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
-          </template>
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
