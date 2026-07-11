@@ -71,6 +71,12 @@ export function getApprovalDetail(instanceId: number) {
   )
 }
 
+export function submitApproval(data: { businessType: string; businessId: number; remark?: string }) {
+  return request.post<any, { code: number; message: string; data: number }>(
+    '/approval/submit', data
+  )
+}
+
 export function approveApproval(instanceId: number, data: { action: string; comment?: string }) {
   return request.post<any, { code: number; message: string; data: null }>(
     `/approval/${instanceId}/approve`, data

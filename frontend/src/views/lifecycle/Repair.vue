@@ -8,6 +8,7 @@
         <el-form-item label="单据状态">
           <el-select v-model="query.status" placeholder="选择状态" clearable style="width:140px">
             <el-option label="草稿" value="DRAFT" />
+            <el-option label="审批中" value="APPROVING" />
             <el-option label="已完成" value="COMPLETED" />
             <el-option label="已取消" value="CANCELLED" />
           </el-select>
@@ -30,15 +31,16 @@
         <el-table-column prop="repairResult" label="维修结果" width="90">
           <template #default="{ row }">{{ repairResultLabel(row.repairResult) }}</template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="80">
+        <el-table-column prop="status" label="状态" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'COMPLETED' ? 'success' : row.status === 'CANCELLED' ? 'danger' : 'info'" size="small">{{ row.status === 'DRAFT' ? '草稿' : row.status === 'COMPLETED' ? '已完成' : '已取消' }}</el-tag>
+            <el-tag :type="row.status === 'COMPLETED' ? 'success' : row.status === 'APPROVING' ? 'warning' : row.status === 'CANCELLED' ? 'danger' : 'info'" size="small">{{ row.status === 'DRAFT' ? '草稿' : row.status === 'APPROVING' ? '审批中' : row.status === 'COMPLETED' ? '已完成' : '已取消' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="创建时间" width="160" />
-        <el-table-column label="操作" width="130" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="viewDetail(row)">查看</el-button>
+            <el-button v-if="row.status === 'DRAFT'" link type="primary" size="small" @click="handleSubmitApproval(row)">提交审批</el-button>
             <el-button v-if="row.status === 'DRAFT'" link type="primary" size="small" @click="openComplete(row)">完成</el-button>
           </template>
         </el-table-column>
@@ -130,11 +132,12 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import AssetSelect from '@/components/AssetSelect.vue'
 import LifecycleDetailDialog from '@/components/LifecycleDetailDialog.vue'
 import { getRepairPage, getRepairDetail, createRepair, completeRepair } from '@/api/lifecycle'
+import { submitApproval } from '@/api/approval'
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -249,6 +252,19 @@ async function submitComplete() {
   } catch {} finally {
     completeLoading.value = false
   }
+}
+
+async function handleSubmitApproval(row: any) {
+  try {
+    await ElMessageBox.confirm('确认提交此维修单至审批流程？', '提示', { type: 'warning' })
+  } catch { return }
+  try {
+    const r = await submitApproval({ businessType: 'REPAIR', businessId: row.id })
+    if (r.code === 200) {
+      ElMessage.success('已提交审批，请到审批中心查看进度')
+      fetchData()
+    }
+  } catch {}
 }
 
 async function viewDetail(row: any) {

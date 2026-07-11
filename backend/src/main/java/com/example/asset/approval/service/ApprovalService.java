@@ -94,6 +94,9 @@ public class ApprovalService {
         record.setStatus("APPROVING");
         approvalRecordMapper.insert(record);
 
+        // 更新单据状态为审批中
+        lifecycleService.updateOrderStatus(req.getBusinessType(), req.getBusinessId(), "APPROVING");
+
         return instance.getId();
     }
 
@@ -115,7 +118,7 @@ public class ApprovalService {
             throw new BusinessException(ResultCode.BAD_REQUEST, "审批节点不存在");
         }
         List<String> userRoles = UserContext.get().getRoles();
-        if (userRoles == null || !userRoles.contains(currentNode.getApproverRole())) {
+        if (userRoles == null || (!userRoles.contains(currentNode.getApproverRole()) && !userRoles.contains("ADMIN"))) {
             throw new BusinessException(ResultCode.FORBIDDEN, "当前用户没有该节点的审批权限");
         }
 
@@ -189,7 +192,7 @@ public class ApprovalService {
             throw new BusinessException(ResultCode.BAD_REQUEST, "审批节点不存在");
         }
         List<String> userRoles = UserContext.get().getRoles();
-        if (userRoles == null || !userRoles.contains(currentNode.getApproverRole())) {
+        if (userRoles == null || (!userRoles.contains(currentNode.getApproverRole()) && !userRoles.contains("ADMIN"))) {
             throw new BusinessException(ResultCode.FORBIDDEN, "当前用户没有该节点的审批权限");
         }
 
@@ -216,6 +219,8 @@ public class ApprovalService {
         approvalRecordMapper.insert(record);
 
         // Do NOT modify asset status — rejection leaves asset untouched
+        // 单据状态恢复为草稿，允许修改后重新提交
+        lifecycleService.updateOrderStatus(instance.getBusinessType(), instance.getBusinessId(), "DRAFT");
     }
 
     // ======================== Todo Page ========================
@@ -224,6 +229,11 @@ public class ApprovalService {
         List<String> userRoles = UserContext.get().getRoles();
         if (userRoles == null || userRoles.isEmpty()) {
             return new PageResult<>();
+        }
+
+        // ADMIN 角色可以看到所有待办
+        if (userRoles.contains("ADMIN")) {
+            userRoles = new ArrayList<>();
         }
 
         Page<ApprovalTodoVO> page = new Page<>(req.getPageNum(), req.getPageSize());

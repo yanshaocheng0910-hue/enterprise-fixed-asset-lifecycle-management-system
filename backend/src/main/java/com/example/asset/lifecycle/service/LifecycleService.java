@@ -56,6 +56,40 @@ public class LifecycleService {
         this.scrapOrderMapper = scrapOrderMapper;
     }
 
+    // ==================== Update Order Status (for approval flow) ====================
+
+    @Transactional
+    public void updateOrderStatus(String businessType, Long businessId, String status) {
+        switch (businessType) {
+            case "RECEIVE":
+                ReceiveOrder ro = new ReceiveOrder();
+                ro.setId(businessId);
+                ro.setStatus(status);
+                receiveOrderMapper.updateById(ro);
+                break;
+            case "TRANSFER":
+                TransferOrder to = new TransferOrder();
+                to.setId(businessId);
+                to.setStatus(status);
+                transferOrderMapper.updateById(to);
+                break;
+            case "REPAIR":
+                RepairOrder ro2 = new RepairOrder();
+                ro2.setId(businessId);
+                ro2.setStatus(status);
+                repairOrderMapper.updateById(ro2);
+                break;
+            case "SCRAP":
+                ScrapOrder so = new ScrapOrder();
+                so.setId(businessId);
+                so.setStatus(status);
+                scrapOrderMapper.updateById(so);
+                break;
+            default:
+                throw new BusinessException(ResultCode.BAD_REQUEST, "不支持的业务类型: " + businessType);
+        }
+    }
+
     // ==================== Asset Select Options ====================
 
     public List<AssetSelectVO> getAssetSelectOptions(String status) {
