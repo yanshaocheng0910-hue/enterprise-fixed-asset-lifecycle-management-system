@@ -2,7 +2,7 @@
 
 ## 项目名称
 
-国企固定资产全生命周期管理系统
+Enterprise Fixed Asset Lifecycle Management System
 
 ## 技术栈
 

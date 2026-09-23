@@ -2,7 +2,7 @@
   <div class="login-page">
     <div class="login-left">
       <div class="left-content">
-        <h1 class="system-title">国企固定资产<br/>全生命周期管理系统</h1>
+        <h1 class="system-title">Enterprise Fixed Asset<br/>Lifecycle Management System</h1>
         <p class="system-desc">资产入库、领用、调拨、维修、盘点、折旧与报废全流程管理</p>
         <div class="feature-list">
           <div class="feature-item">▶ 资产台账管理</div>

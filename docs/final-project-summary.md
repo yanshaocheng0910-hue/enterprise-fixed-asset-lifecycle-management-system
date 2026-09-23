@@ -1,4 +1,4 @@
-# 固定资产全生命周期管理系统 - 项目最终总结
+# Enterprise Fixed Asset Lifecycle Management System - 项目最终总结
 
 > 本文档用于课程项目答辩讲解，对系统的建设背景、目标、架构、技术栈、设计与亮点进行系统化说明。
 

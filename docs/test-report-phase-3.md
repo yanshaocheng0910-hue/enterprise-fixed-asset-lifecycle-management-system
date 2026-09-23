@@ -1,4 +1,4 @@
-# 国企固定资产管理系统 · 完整测试报告
+# Enterprise Fixed Asset Lifecycle Management System · 完整测试报告
 
 > 全量 API 测试 + 前端页面加载验证 + 构建稳定性检查
 

@@ -1,4 +1,4 @@
-# 国企固定资产全生命周期管理系统
+# Enterprise Fixed Asset Lifecycle Management System
 
 ## 1. 项目定位
 
@@ -115,7 +115,7 @@
 ## 4. 目录结构
 
 ```
-fixed-asset-lifecycle-system/
+enterprise-fixed-asset-lifecycle-management-system/
 ├── backend/
 │   ├── pom.xml
 │   └── src/main/
