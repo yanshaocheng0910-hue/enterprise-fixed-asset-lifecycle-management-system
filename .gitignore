@@ -1,0 +1,48 @@
+# Java / Maven
+backend/target/
+backend/*.iml
+backend/.classpath
+backend/.project
+backend/.settings/
+*.class
+*.jar
+*.war
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# IDE artifacts (Trae / Maven wrapper)
+.trae-html-share-packages/
+backend/custom-settings.xml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-local.properties
+
+# Logs
+*.log
+
+# AI Agent
+HANDOFF.md
+AGENTS.md
+.claude/
+CLAUDE.md
+
+# Playwright / Screenshots
+.playwright-mcp/
+*.png

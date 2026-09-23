@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.asset.audit.mapper.AuditMapper">
+
+    <resultMap id="auditLogMap" type="com.example.asset.audit.vo.AuditLogVO">
+        <result property="id" column="id"/>
+        <result property="logType" column="logType"/>
+        <result property="logTypeName" column="logTypeName"/>
+        <result property="assetId" column="assetId"/>
+        <result property="assetCode" column="assetCode"/>
+        <result property="assetName" column="assetName"/>
+        <result property="businessType" column="businessType"/>
+        <result property="businessId" column="businessId"/>
+        <result property="operation" column="operation"/>
+        <result property="beforeStatus" column="beforeStatus"/>
+        <result property="afterStatus" column="afterStatus"/>
+        <result property="operatorName" column="operatorName"/>
+        <result property="operationTime" column="operationTime"/>
+        <result property="remark" column="remark"/>
+        <result property="source" column="source"/>
+    </resultMap>
+
+    <!-- 1. 资产操作日志 -->
+    <select id="selectAssetOperationLogs" resultMap="auditLogMap">
+        SELECT
+            CONCAT('ASSET-', a.id) AS id,
+            'ASSET_OPERATION' AS logType,
+            '资产操作' AS logTypeName,
+            a.asset_id AS assetId,
+            b.asset_code AS assetCode,
+            b.asset_name AS assetName,
+            a.operation_type AS businessType,
+            NULL AS businessId,
+            a.operation_name AS operation,
+            a.before_status AS beforeStatus,
+            a.after_status AS afterStatus,
+            a.operator_name AS operatorName,
+            DATE_FORMAT(a.operation_time, '%Y-%m-%d %H:%i:%s') AS operationTime,
+            a.remark AS remark,
+            'ASSET' AS source
+        FROM asset_operation_log a
+        LEFT JOIN asset b ON a.asset_id = b.id
+        <where>
+            <if test="startDate != null">
+                AND a.operation_time &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND a.operation_time &lt; DATE_ADD(#{endDate}, INTERVAL 1 DAY)
+            </if>
+        </where>
+        ORDER BY a.operation_time DESC
+    </select>
+
+    <!-- 2. 审批操作日志（JOIN 生命周期单据 UNION 子查询取资产） -->
+    <select id="selectApprovalAuditLogs" resultMap="auditLogMap">
+        SELECT
+            CONCAT('APPROVAL-', ar.id) AS id,
+            'APPROVAL' AS logType,
+            '审批操作' AS logTypeName,
+            sub.asset_id AS assetId,
+            b.asset_code AS assetCode,
+            b.asset_name AS assetName,
+            ai.business_type AS businessType,
+            ai.business_id AS businessId,
+            ar.action AS operation,
+            NULL AS beforeStatus,
+            ar.status AS afterStatus,
+            ar.approver_name AS operatorName,
+            DATE_FORMAT(COALESCE(ar.approved_at, ar.created_at), '%Y-%m-%d %H:%i:%s') AS operationTime,
+            ar.comment AS remark,
+            'APPROVAL' AS source
+        FROM approval_record ar
+        JOIN approval_instance ai ON ar.instance_id = ai.id
+        LEFT JOIN (
+            SELECT 'RECEIVE' AS bt, id AS oid, asset_id FROM asset_receive_order
+            UNION ALL
+            SELECT 'TRANSFER' AS bt, id AS oid, asset_id FROM asset_transfer_order
+            UNION ALL
+            SELECT 'REPAIR' AS bt, id AS oid, asset_id FROM asset_repair_order
+            UNION ALL
+            SELECT 'SCRAP' AS bt, id AS oid, asset_id FROM asset_scrap_order
+        ) sub ON ai.business_type = sub.bt AND ai.business_id = sub.oid
+        LEFT JOIN asset b ON sub.asset_id = b.id
+        <where>
+            <if test="startDate != null">
+                AND COALESCE(ar.approved_at, ar.created_at) &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND COALESCE(ar.approved_at, ar.created_at) &lt; DATE_ADD(#{endDate}, INTERVAL 1 DAY)
+            </if>
+        </where>
+        ORDER BY COALESCE(ar.approved_at, ar.created_at) DESC
+    </select>
+
+    <!-- 3. 盘点异常日志 -->
+    <select id="selectInventoryAbnormalLogs" resultMap="auditLogMap">
+        SELECT
+            CONCAT('INVENTORY-', ir.id) AS id,
+            'INVENTORY_ABNORMAL' AS logType,
+            '盘点异常' AS logTypeName,
+            ir.asset_id AS assetId,
+            b.asset_code AS assetCode,
+            b.asset_name AS assetName,
+            'INVENTORY' AS businessType,
+            ir.task_id AS businessId,
+            ir.result AS operation,
+            NULL AS beforeStatus,
+            NULL AS afterStatus,
+            ir.actual_keeper AS operatorName,
+            DATE_FORMAT(ir.scanned_at, '%Y-%m-%d %H:%i:%s') AS operationTime,
+            ir.remark AS remark,
+            'INVENTORY' AS source
+        FROM inventory_record ir
+        LEFT JOIN asset b ON ir.asset_id = b.id
+        <where>
+            ir.result IS NOT NULL
+            AND ir.result != 'NORMAL'
+            <if test="startDate != null">
+                AND ir.scanned_at &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND ir.scanned_at &lt; DATE_ADD(#{endDate}, INTERVAL 1 DAY)
+            </if>
+        </where>
+        ORDER BY ir.scanned_at DESC
+    </select>
+
+    <!-- 4. 财务同步日志 -->
+    <select id="selectFinanceSyncLogs" resultMap="auditLogMap">
+        SELECT
+            CONCAT('FINANCE-', f.id) AS id,
+            'FINANCE_SYNC' AS logType,
+            '财务同步' AS logTypeName,
+            NULL AS assetId,
+            NULL AS assetCode,
+            NULL AS assetName,
+            'FINANCE' AS businessType,
+            f.id AS businessId,
+            f.status AS operation,
+            NULL AS beforeStatus,
+            NULL AS afterStatus,
+            f.operator_name AS operatorName,
+            DATE_FORMAT(f.created_at, '%Y-%m-%d %H:%i:%s') AS operationTime,
+            f.remark AS remark,
+            'FINANCE' AS source
+        FROM finance_sync_record f
+        <where>
+            <if test="startDate != null">
+                AND f.created_at &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND f.created_at &lt; DATE_ADD(#{endDate}, INTERVAL 1 DAY)
+            </if>
+        </where>
+        ORDER BY f.created_at DESC
+    </select>
+
+    <!-- 统计：资产操作日志总数 -->
+    <select id="countAssetOperationLogs" resultType="int">
+        SELECT COUNT(*) FROM asset_operation_log
+    </select>
+
+    <!-- 统计：审批记录总数 -->
+    <select id="countApprovalRecords" resultType="int">
+        SELECT COUNT(*) FROM approval_record
+    </select>
+
+    <!-- 统计：盘点异常总数 -->
+    <select id="countInventoryAbnormal" resultType="int">
+        SELECT COUNT(*) FROM inventory_record WHERE result IS NOT NULL AND result != 'NORMAL'
+    </select>
+
+    <!-- 统计：财务同步记录总数 -->
+    <select id="countFinanceSyncRecords" resultType="int">
+        SELECT COUNT(*) FROM finance_sync_record
+    </select>
+
+    <!-- 统计：今日操作总数 -->
+    <select id="countTodayOperations" resultType="int">
+        SELECT COUNT(*) FROM asset_operation_log WHERE operation_time &gt;= #{todayStart}
+    </select>
+
+</mapper>

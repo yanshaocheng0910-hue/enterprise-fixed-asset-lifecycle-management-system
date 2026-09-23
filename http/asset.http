@@ -1,0 +1,63 @@
+### 分页查询资产
+# 使用登录返回的 token 替换下面 {{token}} 的值
+GET http://localhost:8080/api/assets/page?pageNum=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### 条件查询资产
+GET http://localhost:8080/api/assets/page?pageNum=1&pageSize=10&assetName=电脑&status=IN_USE
+Authorization: Bearer {{token}}
+
+### 查询资产详情
+GET http://localhost:8080/api/assets/1
+Authorization: Bearer {{token}}
+
+### 查询资产状态字典
+GET http://localhost:8080/api/assets/status-options
+Authorization: Bearer {{token}}
+
+### 新增资产
+# 注意：assetCode 由后端自动生成，无需提交
+# accumulatedDepreciation 和 netValue 由后端自动计算，无需提交
+POST http://localhost:8080/api/assets
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "assetName": "HTTP测试-台式机",
+  "categoryId": 2,
+  "specification": "i7/16G/512G",
+  "brand": "Lenovo",
+  "purchaseDate": "2026-06-15",
+  "originalValue": 6800.00,
+  "usefulLife": 4,
+  "residualRate": 0.05,
+  "department": "信息中心",
+  "keeper": "测试员",
+  "location": "A座3层",
+  "remark": "HTTP接口测试"
+}
+
+### 编辑资产（替换 {id} 为实际资产ID）
+PUT http://localhost:8080/api/assets/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "assetName": "台式电脑-A01-编辑测试",
+  "categoryId": 2,
+  "specification": "OptiPlex 7090",
+  "brand": "Dell",
+  "purchaseDate": "2024-03-15",
+  "originalValue": 6800.00,
+  "usefulLife": 4,
+  "residualRate": 0.05,
+  "department": "信息中心",
+  "keeper": "张伟",
+  "location": "A座3层机房",
+  "status": "IN_USE",
+  "remark": "编辑测试"
+}
+
+### 删除资产（替换 {id} 为实际资产ID）
+DELETE http://localhost:8080/api/assets/1
+Authorization: Bearer {{token}}

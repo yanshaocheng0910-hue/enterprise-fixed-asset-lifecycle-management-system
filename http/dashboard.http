@@ -1,0 +1,15 @@
+### 获取驾驶舱核心统计
+GET http://localhost:8080/api/dashboard/stats
+Authorization: Bearer {{token}}
+
+### 获取分类分布
+GET http://localhost:8080/api/dashboard/category-distribution
+Authorization: Bearer {{token}}
+
+### 获取部门金额排行
+GET http://localhost:8080/api/dashboard/department-ranking
+Authorization: Bearer {{token}}
+
+### 获取月度折旧趋势
+GET http://localhost:8080/api/dashboard/depreciation-trend
+Authorization: Bearer {{token}}
